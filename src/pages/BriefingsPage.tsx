@@ -105,16 +105,6 @@ export default function BriefingsPage() {
     );
   }
 
-  if (briefings.length === 0) {
-    return (
-      <EmptyState
-        icon={FileText}
-        title="Belum Ada Briefing"
-        description="Briefing harian akan muncul di sini setelah cron job berjalan"
-      />
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -147,6 +137,13 @@ export default function BriefingsPage() {
         </div>
       )}
 
+      {briefings.length === 0 ? (
+        <EmptyState
+          icon={FileText}
+          title="Belum Ada Briefing"
+          description="Klik tombol 'Generate Briefing' untuk membuat briefing pertama Anda"
+        />
+      ) : (
       <div className="space-y-4">
         {briefings.map((briefing) => (
           <div
@@ -202,6 +199,7 @@ export default function BriefingsPage() {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }
