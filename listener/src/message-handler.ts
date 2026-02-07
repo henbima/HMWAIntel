@@ -37,8 +37,15 @@ export async function handleMessage(msg: WAMessage) {
   const contactId = await resolveContact(senderJid, msg.pushName);
   const isFromHendra = senderJid === config.hendraJid;
 
+  const { data: groupData } = await supabase
+    .from('groups')
+    .select('id')
+    .eq('wa_group_id', remoteJid)
+    .maybeSingle();
+
   const { error } = await supabase.from('messages').insert({
     wa_message_id: msg.key?.id || null,
+    group_id: groupData?.id || null,
     wa_group_id: remoteJid,
     sender_jid: senderJid,
     sender_name: msg.pushName || null,

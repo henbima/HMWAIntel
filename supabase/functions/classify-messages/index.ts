@@ -64,12 +64,11 @@ You will receive a REPLY THREAD (messages that replied to each other). This is O
 - direction: A policy, rule, SOP change, or directive from leadership/management that others must follow.
 - report: A status update, progress report, sales figure, stock count, or operational data.
 - question: Someone asking for information, clarification, or seeking help.
-- complaint: A complaint, issue report, or problem being raised (broken equipment, customer issue, etc.).
-- info: General business information sharing that doesn't fit other categories.
-- chitchat: Casual conversation, greetings, jokes, stickers-only context, or non-business content.
+- coordination: Discussions about scheduling, planning, logistics, or operational coordination between team members.
+- noise: Casual conversation, greetings, jokes, stickers-only, acknowledgments ("ok", "siap", "noted"), or non-business content.
 
 Return ONE JSON object with:
-- classification: one of the categories above (for the entire thread)
+- classification: MUST be one of: "task", "direction", "report", "question", "coordination", "noise"
 - confidence: 0.0 to 1.0 (how certain you are)
 - summary: one-line summary of the entire thread in Bahasa Indonesia (max 150 chars)
 - priority: "low" | "normal" | "high" | "urgent"
@@ -87,7 +86,8 @@ IMPORTANT:
 - Messages marked [REPLY] are replying to earlier messages in this thread.
 - Consider the sender's role and position. Messages from leadership (is_leadership=true) are more likely to be tasks or directions.
 - Messages from Hendra (the owner) that contain instructions are almost always tasks or directions.
-- If the thread is just greetings and acknowledgments ("ok", "siap", "noted"), classify as chitchat.
+- If the thread is just greetings and acknowledgments ("ok", "siap", "noted"), classify as noise.
+- Complaints or issues should be classified as "question" or "task" depending on whether action is requested.
 - Return ONLY valid JSON. No markdown, no explanation.`;
 
 async function fetchUnclassifiedMessages(): Promise<MessageRow[]> {
