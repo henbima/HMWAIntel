@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { supabase } from './supabase.js';
 import { resolveContact } from './contact-resolver.js';
 import { logger } from './logger.js';
+import { config } from './config.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SYNC_STATE_FILE = join(__dirname, '..', 'auth_info', '.last_group_sync');
@@ -117,6 +118,8 @@ async function upsertGroup(meta: GroupMetadata) {
         participant_count: meta.participants?.length || 0,
         is_active: true,
         updated_at: new Date().toISOString(),
+        listener_id: config.listenerId,
+        last_synced_at: new Date().toISOString(),
       },
       { onConflict: 'wa_group_id' }
     );
@@ -153,6 +156,7 @@ async function upsertGroup(meta: GroupMetadata) {
           contact_id: contactId,
           wa_role: waRole,
           is_active: true,
+          listener_id: config.listenerId,
         },
         { onConflict: 'group_id,contact_id' }
       );
@@ -185,6 +189,7 @@ export async function handleParticipantsUpdate(update: {
             wa_role: 'member',
             is_active: true,
             joined_at: new Date().toISOString(),
+            listener_id: config.listenerId,
           },
           { onConflict: 'group_id,contact_id' }
         );

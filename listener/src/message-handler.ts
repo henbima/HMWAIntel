@@ -49,6 +49,8 @@ export async function handleMessage(msg: WAMessage) {
     quoted_message_id: extractQuotedId(msg) || null,
     timestamp: timestamp.toISOString(),
     raw_data: stripBuffers(msg) as Record<string, unknown>,
+    listener_id: config.listenerId,
+    last_seen_by_listener: new Date().toISOString(),
   });
 
   if (error) {

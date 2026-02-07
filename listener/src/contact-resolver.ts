@@ -1,5 +1,6 @@
 import { supabase } from './supabase.js';
 import { logger } from './logger.js';
+import { config } from './config.js';
 
 const contactCache = new Map<string, string>();
 const updatedNames = new Set<string>();
@@ -47,6 +48,8 @@ export async function resolveContact(
       phone_number: phone,
       display_name: displayName,
       short_name: pushName || null,
+      listener_id: config.listenerId,
+      last_resolved_at: new Date().toISOString(),
     })
     .select('id')
     .maybeSingle();
@@ -81,7 +84,12 @@ async function updateContactName(jid: string, pushName: string, contactId: strin
   updatedNames.add(jid);
   const { error } = await supabase
     .from('contacts')
-    .update({ display_name: pushName, short_name: pushName })
+    .update({
+      display_name: pushName,
+      short_name: pushName,
+      listener_id: config.listenerId,
+      last_resolved_at: new Date().toISOString(),
+    })
     .eq('id', contactId);
 
   if (!error) {
