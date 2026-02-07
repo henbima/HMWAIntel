@@ -1,25 +1,59 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Users, Search, Plus, X, Edit3, MapPin, Briefcase, Building } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Users, Search, Plus, X, Edit3, MapPin, Briefcase, Building, ChevronLeft, ChevronRight } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
 import { waIntel } from '../lib/supabase';
 import type { Contact } from '../lib/types';
 
+const PAGE_SIZE = 50;
+
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');
+  const [locations, setLocations] = useState<string[]>([]);
+  const [departments, setDepartments] = useState<string[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editContact, setEditContact] = useState<Contact | null>(null);
+  const searchTimeout = useRef<NodeJS.Timeout>();
+
+  useEffect(() => {
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(0);
+    }, 300);
+    return () => {
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    };
+  }, [search]);
+
+  useEffect(() => {
+    async function loadFilters() {
+      const [locRes, deptRes] = await Promise.all([
+        waIntel.from('contacts').select('location').eq('is_active', true).not('location', 'is', null),
+        waIntel.from('contacts').select('department').eq('is_active', true).not('department', 'is', null),
+      ]);
+      const locs = [...new Set((locRes.data || []).map((r) => r.location as string))].sort();
+      const depts = [...new Set((deptRes.data || []).map((r) => r.department as string))].sort();
+      setLocations(locs);
+      setDepartments(depts);
+    }
+    loadFilters();
+  }, []);
 
   const fetchContacts = useCallback(async () => {
     setLoading(true);
     let query = waIntel
       .from('contacts')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('is_active', true)
-      .order('display_name');
+      .order('display_name')
+      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
     if (filterLocation) {
       query = query.eq('location', filterLocation);
@@ -27,21 +61,23 @@ export default function ContactsPage() {
     if (filterDepartment) {
       query = query.eq('department', filterDepartment);
     }
-    if (search) {
-      query = query.or(`display_name.ilike.%${search}%,short_name.ilike.%${search}%,phone_number.ilike.%${search}%`);
+    if (debouncedSearch) {
+      query = query.or(`display_name.ilike.%${debouncedSearch}%,short_name.ilike.%${debouncedSearch}%,phone_number.ilike.%${debouncedSearch}%`);
     }
 
-    const { data } = await query;
+    const { data, count } = await query;
     setContacts(data || []);
+    setTotalCount(count || 0);
     setLoading(false);
-  }, [search, filterLocation, filterDepartment]);
+  }, [debouncedSearch, filterLocation, filterDepartment, page]);
 
   useEffect(() => {
     fetchContacts();
   }, [fetchContacts]);
 
-  const locations = [...new Set(contacts.map((c) => c.location).filter(Boolean))];
-  const departments = [...new Set(contacts.map((c) => c.department).filter(Boolean))];
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  const startItem = page * PAGE_SIZE + 1;
+  const endItem = Math.min((page + 1) * PAGE_SIZE, totalCount);
 
   const handleEdit = (contact: Contact) => {
     setEditContact(contact);
@@ -103,12 +139,12 @@ export default function ContactsPage() {
         {locations.length > 0 && (
           <select
             value={filterLocation}
-            onChange={(e) => setFilterLocation(e.target.value)}
+            onChange={(e) => { setFilterLocation(e.target.value); setPage(0); }}
             className="rounded-lg border-gray-300 text-sm focus:ring-emerald-500 focus:border-emerald-500"
           >
             <option value="">All locations</option>
             {locations.map((l) => (
-              <option key={l} value={l!}>{l}</option>
+              <option key={l} value={l}>{l}</option>
             ))}
           </select>
         )}
@@ -116,18 +152,18 @@ export default function ContactsPage() {
         {departments.length > 0 && (
           <select
             value={filterDepartment}
-            onChange={(e) => setFilterDepartment(e.target.value)}
+            onChange={(e) => { setFilterDepartment(e.target.value); setPage(0); }}
             className="rounded-lg border-gray-300 text-sm focus:ring-emerald-500 focus:border-emerald-500"
           >
             <option value="">All departments</option>
             {departments.map((d) => (
-              <option key={d} value={d!}>{d}</option>
+              <option key={d} value={d}>{d}</option>
             ))}
           </select>
         )}
       </div>
 
-      {contacts.length === 0 ? (
+      {contacts.length === 0 && !loading ? (
         <EmptyState
           icon={Users}
           title="No contacts yet"
@@ -139,72 +175,101 @@ export default function ContactsPage() {
           action={!search ? { label: 'Add Contact', onClick: handleAdd } : undefined}
         />
       ) : (
-        <div className="bg-white rounded-xl border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 border-b">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Role</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Location</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Department</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Phone</th>
-                  <th className="px-5 py-3 w-12"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {contacts.map((contact) => (
-                  <tr key={contact.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${
-                          contact.is_leadership ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {(contact.short_name || contact.display_name).charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{contact.display_name}</p>
-                          {contact.short_name && (
-                            <p className="text-xs text-gray-500">{contact.short_name}</p>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 hidden sm:table-cell">
-                      <div className="flex items-center gap-1.5">
-                        <Briefcase className="w-3 h-3 text-gray-400" />
-                        <span className="text-gray-600">{contact.role || '-'}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 hidden md:table-cell">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="w-3 h-3 text-gray-400" />
-                        <span className="text-gray-600">{contact.location || '-'}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 hidden lg:table-cell">
-                      <div className="flex items-center gap-1.5">
-                        <Building className="w-3 h-3 text-gray-400" />
-                        <span className="text-gray-600">{contact.department || '-'}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 hidden lg:table-cell">
-                      <span className="text-gray-500 font-mono text-xs">{contact.phone_number || '-'}</span>
-                    </td>
-                    <td className="px-5 py-3">
-                      <button
-                        onClick={() => handleEdit(contact)}
-                        className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                      >
-                        <Edit3 className="w-3.5 h-3.5 text-gray-400" />
-                      </button>
-                    </td>
+        <>
+          <div className="bg-white rounded-xl border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b">
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Role</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Location</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Department</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Phone</th>
+                    <th className="px-5 py-3 w-12"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y">
+                  {contacts.map((contact) => (
+                    <tr key={contact.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${
+                            contact.is_leadership ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {(contact.short_name || contact.display_name).charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{contact.display_name}</p>
+                            {contact.short_name && (
+                              <p className="text-xs text-gray-500">{contact.short_name}</p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 hidden sm:table-cell">
+                        <div className="flex items-center gap-1.5">
+                          <Briefcase className="w-3 h-3 text-gray-400" />
+                          <span className="text-gray-600">{contact.role || '-'}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 hidden md:table-cell">
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="w-3 h-3 text-gray-400" />
+                          <span className="text-gray-600">{contact.location || '-'}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 hidden lg:table-cell">
+                        <div className="flex items-center gap-1.5">
+                          <Building className="w-3 h-3 text-gray-400" />
+                          <span className="text-gray-600">{contact.department || '-'}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 hidden lg:table-cell">
+                        <span className="text-gray-500 font-mono text-xs">{contact.phone_number || '-'}</span>
+                      </td>
+                      <td className="px-5 py-3">
+                        <button
+                          onClick={() => handleEdit(contact)}
+                          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-gray-400" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500">
+                Showing {startItem}-{endItem} of {totalCount.toLocaleString()} contacts
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className="p-2 rounded-lg border bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4 text-gray-600" />
+                </button>
+                <span className="text-sm text-gray-600 min-w-[80px] text-center">
+                  Page {page + 1} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1}
+                  className="p-2 rounded-lg border bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4 text-gray-600" />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {showModal && (
