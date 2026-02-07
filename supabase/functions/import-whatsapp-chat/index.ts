@@ -128,7 +128,8 @@ Deno.serve(async (req: Request) => {
     }
 
     let { data: group } = await supabase
-      .from("wa_intel.groups")
+      .schema("wa_intel")
+      .from("groups")
       .select("id, wa_group_id, name")
       .eq("name", groupName)
       .maybeSingle();
@@ -136,7 +137,8 @@ Deno.serve(async (req: Request) => {
     if (!group) {
       const waGroupId = `import_${Date.now()}@g.us`;
       const { data: newGroup, error: createError } = await supabase
-        .from("wa_intel.groups")
+        .schema("wa_intel")
+        .from("groups")
         .insert({
           name: groupName,
           wa_group_id: waGroupId,
@@ -160,7 +162,8 @@ Deno.serve(async (req: Request) => {
     const parsedMessages = parseWhatsAppExport(chatText);
 
     const { data: contacts } = await supabase
-      .from("wa_intel.contacts")
+      .schema("wa_intel")
+      .from("contacts")
       .select("id, display_name, short_name, phone_number");
 
     const contactMap = new Map<string, string>();
@@ -226,7 +229,8 @@ Deno.serve(async (req: Request) => {
         const batch = messagesToInsert.slice(i, i + batchSize);
 
         const { error } = await supabase
-          .from("wa_intel.messages")
+          .schema("wa_intel")
+          .from("messages")
           .insert(batch);
 
         if (error) {
