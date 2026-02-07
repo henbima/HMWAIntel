@@ -127,17 +127,34 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { data: group } = await supabase
+    let { data: group } = await supabase
       .from("wa_intel.groups")
       .select("id, wa_group_id, name")
       .eq("name", groupName)
       .maybeSingle();
 
     if (!group) {
-      return new Response(
-        JSON.stringify({ error: "Group not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      const waGroupId = `import_${Date.now()}@g.us`;
+      const { data: newGroup, error: createError } = await supabase
+        .from("wa_intel.groups")
+        .insert({
+          name: groupName,
+          wa_group_id: waGroupId,
+          is_active: true,
+          is_monitored: true,
+        })
+        .select("id, wa_group_id, name")
+        .single();
+
+      if (createError || !newGroup) {
+        console.error("Failed to create group:", createError);
+        return new Response(
+          JSON.stringify({ error: "Failed to create group" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      group = newGroup;
     }
 
     const parsedMessages = parseWhatsAppExport(chatText);
