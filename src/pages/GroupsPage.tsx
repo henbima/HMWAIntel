@@ -14,12 +14,17 @@ interface MessageWithClassification extends Message {
   classification?: ClassifiedItem;
 }
 
+const PAGE_SIZE = 100;
+
 export default function GroupsPage() {
   const [groups, setGroups] = useState<GroupWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedGroup, setSelectedGroup] = useState<GroupWithStats | null>(null);
   const [messages, setMessages] = useState<MessageWithClassification[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
     async function loadGroups() {
@@ -43,13 +48,22 @@ export default function GroupsPage() {
   const loadGroupMessages = async (group: GroupWithStats) => {
     setSelectedGroup(group);
     setMessagesLoading(true);
+    setMessages([]);
+    setHasMore(true);
+
+    const { count } = await waIntel
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('wa_group_id', group.wa_group_id);
+
+    setTotalCount(count || 0);
 
     const { data: msgData } = await waIntel
       .from('messages')
       .select('*, classified_items(*)')
       .eq('wa_group_id', group.wa_group_id)
       .order('timestamp', { ascending: false })
-      .limit(50);
+      .limit(PAGE_SIZE);
 
     const enriched: MessageWithClassification[] = (msgData || []).map((m: Record<string, unknown>) => {
       const ci = m.classified_items;
@@ -60,7 +74,33 @@ export default function GroupsPage() {
     });
 
     setMessages(enriched);
+    setHasMore(enriched.length === PAGE_SIZE);
     setMessagesLoading(false);
+  };
+
+  const loadMoreMessages = async () => {
+    if (!selectedGroup || loadingMore || !hasMore) return;
+
+    setLoadingMore(true);
+
+    const { data: msgData } = await waIntel
+      .from('messages')
+      .select('*, classified_items(*)')
+      .eq('wa_group_id', selectedGroup.wa_group_id)
+      .order('timestamp', { ascending: false })
+      .range(messages.length, messages.length + PAGE_SIZE - 1);
+
+    const enriched: MessageWithClassification[] = (msgData || []).map((m: Record<string, unknown>) => {
+      const ci = m.classified_items;
+      return {
+        ...m,
+        classification: Array.isArray(ci) && ci.length > 0 ? ci[0] : undefined,
+      } as MessageWithClassification;
+    });
+
+    setMessages(prev => [...prev, ...enriched]);
+    setHasMore(enriched.length === PAGE_SIZE);
+    setLoadingMore(false);
   };
 
   if (loading) {
@@ -83,6 +123,10 @@ export default function GroupsPage() {
         messages={messages}
         loading={messagesLoading}
         onBack={() => setSelectedGroup(null)}
+        totalCount={totalCount}
+        hasMore={hasMore}
+        loadingMore={loadingMore}
+        onLoadMore={loadMoreMessages}
       />
     );
   }
@@ -149,11 +193,19 @@ function GroupDetail({
   messages,
   loading,
   onBack,
+  totalCount,
+  hasMore,
+  loadingMore,
+  onLoadMore,
 }: {
   group: GroupWithStats;
   messages: MessageWithClassification[];
   loading: boolean;
   onBack: () => void;
+  totalCount: number;
+  hasMore: boolean;
+  loadingMore: boolean;
+  onLoadMore: () => void;
 }) {
   const importantMessages = messages.filter(
     (m) => m.classification && !['noise', 'coordination'].includes(m.classification.classification)
@@ -171,7 +223,7 @@ function GroupDetail({
         <div>
           <h1 className="text-xl font-bold text-gray-900">{group.name}</h1>
           <p className="text-sm text-gray-500">
-            {group.participant_count} members | {messages.length} recent messages
+            {group.participant_count} members | {totalCount.toLocaleString()} total messages | Showing {messages.length}
           </p>
         </div>
       </div>
@@ -204,6 +256,18 @@ function GroupDetail({
                 {messages.map((msg) => (
                   <MessageRow key={msg.id} message={msg} />
                 ))}
+              </div>
+            )}
+
+            {hasMore && (
+              <div className="mt-4 text-center">
+                <button
+                  onClick={onLoadMore}
+                  disabled={loadingMore}
+                  className="px-6 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                >
+                  {loadingMore ? 'Loading...' : `Load More (${(totalCount - messages.length).toLocaleString()} remaining)`}
+                </button>
               </div>
             )}
           </div>
