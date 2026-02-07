@@ -63,7 +63,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-export async function syncAllGroups(sock: WASocket) {
+export async function syncAllGroups(sock: WASocket): Promise<number> {
   logger.info('Starting full group sync (staggered)...');
 
   let groups: Record<string, GroupMetadata>;
@@ -71,7 +71,7 @@ export async function syncAllGroups(sock: WASocket) {
     groups = await sock.groupFetchAllParticipating();
   } catch (err) {
     logger.error({ err }, 'Failed to fetch groups');
-    return;
+    return 0;
   }
 
   const entries = Object.values(groups);
@@ -89,6 +89,7 @@ export async function syncAllGroups(sock: WASocket) {
   lastFullSyncTime = Date.now();
   saveSyncState();
   logger.info('Full group sync complete');
+  return entries.length;
 }
 
 export async function syncSingleGroup(sock: WASocket, waGroupId: string) {

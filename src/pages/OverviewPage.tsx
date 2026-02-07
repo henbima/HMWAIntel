@@ -7,6 +7,7 @@ import {
   MessageSquare,
   Clock,
   ArrowRight,
+  RefreshCw,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import StatCard from '../components/StatCard';
@@ -14,6 +15,14 @@ import { TaskStatusBadge, PriorityBadge } from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import { supabase } from '../lib/supabase';
 import type { Task, Direction, Group } from '../lib/types';
+
+interface SyncRequest {
+  id: string;
+  status: string;
+  requested_at: string;
+  completed_at: string | null;
+  groups_synced: number | null;
+}
 
 interface OverviewStats {
   totalTasks: number;
@@ -37,6 +46,8 @@ export default function OverviewPage() {
   const [recentDirections, setRecentDirections] = useState<Direction[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncRequest, setSyncRequest] = useState<SyncRequest | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     async function loadOverview() {
@@ -78,7 +89,65 @@ export default function OverviewPage() {
     }
 
     loadOverview();
+
+    const { data } = supabase
+      .from('sync_requests')
+      .select('*')
+      .order('requested_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    data.then((result) => {
+      if (result.data) {
+        setSyncRequest(result.data);
+        if (result.data.status === 'pending' || result.data.status === 'processing') {
+          setSyncing(true);
+        }
+      }
+    });
   }, []);
+
+  useEffect(() => {
+    if (!syncing) return;
+
+    const interval = setInterval(async () => {
+      const { data } = await supabase
+        .from('sync_requests')
+        .select('*')
+        .order('requested_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (data) {
+        setSyncRequest(data);
+        if (data.status === 'completed' || data.status === 'failed') {
+          setSyncing(false);
+          if (data.status === 'completed') {
+            window.location.reload();
+          }
+        }
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [syncing]);
+
+  async function handleRefreshGroups() {
+    setSyncing(true);
+    const { data, error } = await supabase
+      .from('sync_requests')
+      .insert({ status: 'pending' })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Failed to create sync request:', error);
+      setSyncing(false);
+      return;
+    }
+
+    setSyncRequest(data);
+  }
 
   if (loading) {
     return (
@@ -97,10 +166,35 @@ export default function OverviewPage() {
 
   return (
     <div className="space-y-6 fade-in">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-0.5">HollyMart WhatsApp Intelligence overview</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-sm text-gray-500 mt-0.5">HollyMart WhatsApp Intelligence overview</p>
+        </div>
+        <button
+          onClick={handleRefreshGroups}
+          disabled={syncing}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+          {syncing ? 'Syncing...' : 'Refresh Groups'}
+        </button>
       </div>
+      {syncRequest && syncing && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+          <p className="text-sm text-blue-800">
+            {syncRequest.status === 'pending' && 'Sync request queued...'}
+            {syncRequest.status === 'processing' && 'Syncing groups from WhatsApp...'}
+          </p>
+        </div>
+      )}
+      {syncRequest && !syncing && syncRequest.status === 'completed' && (
+        <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+          <p className="text-sm text-green-800">
+            Synced {syncRequest.groups_synced} groups successfully
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard label="Active Tasks" value={stats.totalTasks} icon={CheckSquare} color="blue" />

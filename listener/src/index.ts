@@ -9,9 +9,10 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import qrcode from 'qrcode-terminal';
 import { handleMessage, setSocket } from './message-handler.js';
-import { syncAllGroups, shouldFullSync, handleParticipantsUpdate } from './group-sync.js';
+import { syncAllGroups, handleParticipantsUpdate } from './group-sync.js';
 import { logger } from './logger.js';
 import { config } from './config.js';
+import { supabase } from './supabase.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const AUTH_DIR = join(__dirname, '..', 'auth_info', config.listenerId);
@@ -83,31 +84,53 @@ async function startListener() {
 
     if (connection === 'open') {
       reconnectAttempts = 0;
-      logger.info('Connected to WhatsApp');
-
-      const needsSync = shouldFullSync();
-
-      if (needsSync) {
-        logger.info('Full group sync needed (first run or stale data)');
-        try {
-          await syncAllGroups(sock);
-        } catch (err) {
-          logger.error({ err }, 'Initial group sync failed (non-fatal)');
-        }
-      } else {
-        logger.info('Skipping full group sync (recent data exists). Using lazy per-group sync.');
-      }
+      logger.info('Connected to WhatsApp - using lazy sync mode');
 
       syncTimer = setInterval(async () => {
-        if (shouldFullSync()) {
-          logger.info('Scheduled full group sync triggered');
-          try {
-            await syncAllGroups(sock);
-          } catch (err) {
-            logger.error({ err }, 'Scheduled group sync failed (non-fatal)');
+        try {
+          const { data: pendingRequests } = await supabase
+            .from('sync_requests')
+            .select('id')
+            .eq('status', 'pending')
+            .order('requested_at', { ascending: true })
+            .limit(1);
+
+          if (pendingRequests && pendingRequests.length > 0) {
+            const request = pendingRequests[0];
+            logger.info({ requestId: request.id }, 'Processing sync request');
+
+            await supabase
+              .from('sync_requests')
+              .update({ status: 'processing', started_at: new Date().toISOString() })
+              .eq('id', request.id);
+
+            try {
+              const groupsCount = await syncAllGroups(sock);
+              await supabase
+                .from('sync_requests')
+                .update({
+                  status: 'completed',
+                  completed_at: new Date().toISOString(),
+                  groups_synced: groupsCount,
+                })
+                .eq('id', request.id);
+              logger.info({ requestId: request.id, groupsCount }, 'Sync request completed');
+            } catch (err) {
+              await supabase
+                .from('sync_requests')
+                .update({
+                  status: 'failed',
+                  completed_at: new Date().toISOString(),
+                  error: err instanceof Error ? err.message : 'Unknown error',
+                })
+                .eq('id', request.id);
+              logger.error({ err, requestId: request.id }, 'Sync request failed');
+            }
           }
+        } catch (err) {
+          logger.error({ err }, 'Error checking sync requests');
         }
-      }, 60 * 60 * 1000);
+      }, 10000);
     }
   });
 
