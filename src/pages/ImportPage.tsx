@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Upload, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
-import Layout from '../components/Layout';
 import { useQuery } from '../hooks/useSupabase';
 
 interface ImportStats {
@@ -31,7 +30,7 @@ export default function ImportPage() {
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const { data: groups, loading } = useQuery<Group>('wa_intel.groups', {
+  const { data: groups, loading } = useQuery<Group>('groups', {
     select: 'id, name, wa_group_id',
     filter: [{ column: 'is_active', operator: 'eq', value: true }]
   });
@@ -100,8 +99,7 @@ export default function ImportPage() {
   };
 
   return (
-    <Layout>
-      <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Import WhatsApp Chat</h1>
           <p className="text-gray-600">
@@ -273,6 +271,5 @@ export default function ImportPage() {
           </ul>
         </div>
       </div>
-    </Layout>
   );
 }
