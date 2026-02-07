@@ -8,8 +8,10 @@ import {
   Menu,
   X,
   Activity,
+  LogOut,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useAuth } from '../lib/auth';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Overview' },
@@ -21,6 +23,7 @@ const navItems = [
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { signOut, user } = useAuth();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -82,11 +85,18 @@ export default function Layout() {
           ))}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-gray-50/50">
-          <div className="flex items-center gap-2">
+        <div className="absolute bottom-0 left-0 right-0 p-3 border-t bg-gray-50/50 space-y-2">
+          <div className="flex items-center gap-2 px-1">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs text-gray-500">System Active</span>
+            <span className="text-xs text-gray-500 truncate flex-1">{user?.email}</span>
           </div>
+          <button
+            onClick={signOut}
+            className="flex items-center gap-2 w-full px-3 py-1.5 rounded-lg text-xs text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Sign out
+          </button>
         </div>
       </aside>
 
