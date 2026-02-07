@@ -1,60 +1,33 @@
 /*
-  # Create wa_intel schema and all core tables
+  # WA Intel Schema Setup
+  Run this SQL in your Supabase SQL Editor:
+  https://supabase.com/dashboard/project/nnzhdjibilebpjgaqkdu/sql
 
-  1. Schema
-    - Creates `wa_intel` schema for HollyMart WhatsApp Intelligence system
+  Creates the wa_intel schema with all tables for the HollyMart WhatsApp Intelligence system.
+  Does NOT touch the public schema or any existing HMCS tables.
 
-  2. New Tables
-    - `wa_intel.groups` - WhatsApp groups being monitored
-      - `id` (uuid, primary key)
-      - `wa_group_id` (text, unique) - WhatsApp group JID
-      - `name` (text) - Group display name
-      - `description` (text) - Group description
-      - `is_active` (boolean) - Whether actively monitored
-      - `participant_count` (integer)
-    - `wa_intel.contacts` - People registry with roles and locations
-      - `id` (uuid, primary key)
-      - `wa_jid` (text, unique) - WhatsApp JID
-      - `phone_number`, `display_name`, `short_name`, `role`, `location`, `department`
-      - `is_leadership` (boolean), `is_active` (boolean)
-      - `hmcs_employee_id` (text) - Optional link to HMCS
-    - `wa_intel.group_members` - Many-to-many group membership
-      - Links groups to contacts with WA role tracking
-    - `wa_intel.messages` - Raw WhatsApp messages
-      - `id` (uuid, primary key)
-      - `wa_message_id` (text, unique)
-      - Group, sender, contact references
-      - `message_text`, `message_type`, `media_url`
-      - `is_from_hendra` flag, `quoted_message_id`, `timestamp`
-      - `raw_data` (jsonb)
-    - `wa_intel.classified_items` - AI classification results
-      - Classification type, confidence, summary
-      - Extracted entities: assigned_to, assigned_by, deadline, topic, priority
-    - `wa_intel.tasks` - Tracked tasks extracted from WA
-      - Title, description, assignment, status tracking
-      - Status: new / in_progress / done / stuck / cancelled
-    - `wa_intel.directions` - Directives from leadership (knowledge base)
-      - Title, content, topic, target audience
-      - Validity tracking with superseded_by reference
-    - `wa_intel.daily_briefings` - Daily briefing log
-      - Summary text, counts, delivery tracking
-
-  3. Views
-    - `wa_intel.overdue_tasks` - Tasks open > 3 days
-    - `wa_intel.today_summary` - Per-group daily summary
-
-  4. Security
-    - RLS enabled on all tables
-    - Policies for authenticated users to read wa_intel data
-    - Service role (Baileys listener) bypasses RLS
-
-  5. Indexes
-    - Optimized indexes for common query patterns
+  1. Schema - Creates `wa_intel` schema
+  2. Tables: groups, contacts, group_members, messages, classified_items, tasks, directions, daily_briefings
+  3. Views: overdue_tasks, today_summary
+  4. Security: RLS enabled on all tables
+  5. PostgREST: Exposes wa_intel schema to the API
 */
 
+-- Step 1: Create schema
 CREATE SCHEMA IF NOT EXISTS wa_intel;
 
+-- Step 2: Expose wa_intel to PostgREST API
+ALTER ROLE authenticator SET pgrst.db_schemas TO 'public, graphql_public, wa_intel';
+NOTIFY pgrst, 'reload config';
+
+-- Step 3: Grant schema usage
+GRANT USAGE ON SCHEMA wa_intel TO authenticated;
+GRANT USAGE ON SCHEMA wa_intel TO anon;
+GRANT USAGE ON SCHEMA wa_intel TO service_role;
+
+-- ============================================================
 -- TABLE 1: groups
+-- ============================================================
 CREATE TABLE IF NOT EXISTS wa_intel.groups (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     wa_group_id TEXT UNIQUE NOT NULL,
@@ -84,7 +57,9 @@ CREATE POLICY "Authenticated users can update groups"
   USING (auth.uid() IS NOT NULL)
   WITH CHECK (auth.uid() IS NOT NULL);
 
+-- ============================================================
 -- TABLE 2: contacts
+-- ============================================================
 CREATE TABLE IF NOT EXISTS wa_intel.contacts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     wa_jid TEXT UNIQUE NOT NULL,
@@ -123,7 +98,9 @@ CREATE POLICY "Authenticated users can update contacts"
 CREATE INDEX IF NOT EXISTS idx_contacts_jid ON wa_intel.contacts(wa_jid);
 CREATE INDEX IF NOT EXISTS idx_contacts_location ON wa_intel.contacts(location);
 
+-- ============================================================
 -- TABLE 3: group_members
+-- ============================================================
 CREATE TABLE IF NOT EXISTS wa_intel.group_members (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     group_id UUID REFERENCES wa_intel.groups(id) ON DELETE CASCADE,
@@ -152,7 +129,9 @@ CREATE POLICY "Authenticated users can update group_members"
   USING (auth.uid() IS NOT NULL)
   WITH CHECK (auth.uid() IS NOT NULL);
 
+-- ============================================================
 -- TABLE 4: messages
+-- ============================================================
 CREATE TABLE IF NOT EXISTS wa_intel.messages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     wa_message_id TEXT UNIQUE,
@@ -188,7 +167,9 @@ CREATE INDEX IF NOT EXISTS idx_messages_sender ON wa_intel.messages(sender_jid);
 CREATE INDEX IF NOT EXISTS idx_messages_from_hendra ON wa_intel.messages(is_from_hendra) WHERE is_from_hendra = true;
 CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON wa_intel.messages(timestamp DESC);
 
+-- ============================================================
 -- TABLE 5: classified_items
+-- ============================================================
 CREATE TABLE IF NOT EXISTS wa_intel.classified_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     message_id UUID REFERENCES wa_intel.messages(id) ON DELETE CASCADE,
@@ -227,7 +208,9 @@ CREATE POLICY "Authenticated users can update classified_items"
 CREATE INDEX IF NOT EXISTS idx_classified_type ON wa_intel.classified_items(classification);
 CREATE INDEX IF NOT EXISTS idx_classified_time ON wa_intel.classified_items(classified_at DESC);
 
+-- ============================================================
 -- TABLE 6: tasks
+-- ============================================================
 CREATE TABLE IF NOT EXISTS wa_intel.tasks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     classified_item_id UUID REFERENCES wa_intel.classified_items(id),
@@ -268,7 +251,9 @@ CREATE POLICY "Authenticated users can update tasks"
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON wa_intel.tasks(status);
 CREATE INDEX IF NOT EXISTS idx_tasks_assigned ON wa_intel.tasks(assigned_to);
 
+-- ============================================================
 -- TABLE 7: directions
+-- ============================================================
 CREATE TABLE IF NOT EXISTS wa_intel.directions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     source_message_id UUID REFERENCES wa_intel.messages(id),
@@ -304,7 +289,9 @@ CREATE POLICY "Authenticated users can update directions"
 CREATE INDEX IF NOT EXISTS idx_directions_topic ON wa_intel.directions(topic);
 CREATE INDEX IF NOT EXISTS idx_directions_valid ON wa_intel.directions(is_still_valid) WHERE is_still_valid = true;
 
+-- ============================================================
 -- TABLE 8: daily_briefings
+-- ============================================================
 CREATE TABLE IF NOT EXISTS wa_intel.daily_briefings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     briefing_date DATE NOT NULL UNIQUE,
@@ -330,7 +317,9 @@ CREATE POLICY "Authenticated users can insert daily_briefings"
   TO authenticated
   WITH CHECK (auth.uid() IS NOT NULL);
 
--- VIEW: overdue tasks
+-- ============================================================
+-- VIEW: overdue tasks (open > 3 days)
+-- ============================================================
 CREATE OR REPLACE VIEW wa_intel.overdue_tasks AS
 SELECT
     t.*,
@@ -341,7 +330,9 @@ LEFT JOIN wa_intel.messages m ON m.id = t.source_message_id
 WHERE t.status NOT IN ('done', 'cancelled')
 AND t.created_at < now() - INTERVAL '3 days';
 
--- VIEW: today summary
+-- ============================================================
+-- VIEW: today summary per group
+-- ============================================================
 CREATE OR REPLACE VIEW wa_intel.today_summary AS
 SELECT
     g.name AS group_name,
@@ -356,8 +347,12 @@ LEFT JOIN wa_intel.messages m ON m.wa_group_id = g.wa_group_id
 LEFT JOIN wa_intel.classified_items ci ON ci.message_id = m.id
 GROUP BY g.name, g.wa_group_id;
 
--- Grant usage on wa_intel schema to authenticated and anon roles
-GRANT USAGE ON SCHEMA wa_intel TO authenticated;
-GRANT USAGE ON SCHEMA wa_intel TO anon;
+-- ============================================================
+-- Grant table permissions
+-- ============================================================
 GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA wa_intel TO authenticated;
 GRANT SELECT ON ALL TABLES IN SCHEMA wa_intel TO anon;
+GRANT ALL ON ALL TABLES IN SCHEMA wa_intel TO service_role;
+
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA wa_intel TO authenticated;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA wa_intel TO service_role;
