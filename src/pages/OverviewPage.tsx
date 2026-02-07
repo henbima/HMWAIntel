@@ -5,9 +5,12 @@ import {
   CheckCircle2,
   Compass,
   MessageSquare,
-  Clock,
   ArrowRight,
   RefreshCw,
+  Star,
+  Users,
+  Activity,
+  ChevronRight,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import StatCard from '../components/StatCard';
@@ -31,6 +34,12 @@ interface OverviewStats {
   activeDirections: number;
   totalMessages: number;
   activeGroups: number;
+  monitoredGroups: number;
+}
+
+interface GroupWithStats extends Group {
+  today_message_count: number;
+  flagged_count: number;
 }
 
 export default function OverviewPage() {
@@ -41,10 +50,11 @@ export default function OverviewPage() {
     activeDirections: 0,
     totalMessages: 0,
     activeGroups: 0,
+    monitoredGroups: 0,
   });
   const [recentTasks, setRecentTasks] = useState<Task[]>([]);
   const [recentDirections, setRecentDirections] = useState<Direction[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
+  const [starredGroups, setStarredGroups] = useState<GroupWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncRequest, setSyncRequest] = useState<SyncRequest | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -60,7 +70,8 @@ export default function OverviewPage() {
         completedRes,
         directionsRes,
         messagesRes,
-        groupsRes,
+        groupsCountRes,
+        starredGroupsRes,
         recentTasksRes,
         recentDirsRes,
       ] = await Promise.all([
@@ -69,10 +80,14 @@ export default function OverviewPage() {
         waIntel.from('tasks').select('id', { count: 'exact', head: true }).eq('status', 'done').gte('completed_at', today),
         waIntel.from('directions').select('id', { count: 'exact', head: true }).eq('is_still_valid', true),
         waIntel.from('messages').select('id', { count: 'exact', head: true }),
-        waIntel.from('groups').select('*').eq('is_active', true).order('name'),
+        waIntel.from('groups').select('id', { count: 'exact', head: true }).eq('is_active', true),
+        waIntel.rpc('get_groups_with_today_stats'),
         waIntel.from('tasks').select('*').in('status', ['new', 'in_progress', 'stuck']).order('created_at', { ascending: false }).limit(5),
         waIntel.from('directions').select('*').eq('is_still_valid', true).order('created_at', { ascending: false }).limit(5),
       ]);
+
+      const allGroups = (starredGroupsRes.data || []) as GroupWithStats[];
+      const starred = allGroups.filter(g => g.is_starred);
 
       setStats({
         totalTasks: tasksRes.count || 0,
@@ -80,11 +95,12 @@ export default function OverviewPage() {
         completedToday: completedRes.count || 0,
         activeDirections: directionsRes.count || 0,
         totalMessages: messagesRes.count || 0,
-        activeGroups: groupsRes.data?.length || 0,
+        activeGroups: groupsCountRes.count || 0,
+        monitoredGroups: starred.length,
       });
       setRecentTasks(recentTasksRes.data || []);
       setRecentDirections(recentDirsRes.data || []);
-      setGroups(groupsRes.data || []);
+      setStarredGroups(starred);
       setLoading(false);
     }
 
@@ -114,7 +130,8 @@ export default function OverviewPage() {
       completedRes,
       directionsRes,
       messagesRes,
-      groupsRes,
+      groupsCountRes,
+      starredGroupsRes,
       recentTasksRes,
       recentDirsRes,
     ] = await Promise.all([
@@ -123,10 +140,14 @@ export default function OverviewPage() {
       waIntel.from('tasks').select('id', { count: 'exact', head: true }).eq('status', 'done').gte('completed_at', today),
       waIntel.from('directions').select('id', { count: 'exact', head: true }).eq('is_still_valid', true),
       waIntel.from('messages').select('id', { count: 'exact', head: true }),
-      waIntel.from('groups').select('*').eq('is_active', true).order('name'),
+      waIntel.from('groups').select('id', { count: 'exact', head: true }).eq('is_active', true),
+      waIntel.rpc('get_groups_with_today_stats'),
       waIntel.from('tasks').select('*').in('status', ['new', 'in_progress', 'stuck']).order('created_at', { ascending: false }).limit(5),
       waIntel.from('directions').select('*').eq('is_still_valid', true).order('created_at', { ascending: false }).limit(5),
     ]);
+
+    const allGroups = (starredGroupsRes.data || []) as GroupWithStats[];
+    const starred = allGroups.filter(g => g.is_starred);
 
     setStats({
       totalTasks: tasksRes.count || 0,
@@ -134,11 +155,12 @@ export default function OverviewPage() {
       completedToday: completedRes.count || 0,
       activeDirections: directionsRes.count || 0,
       totalMessages: messagesRes.count || 0,
-      activeGroups: groupsRes.data?.length || 0,
+      activeGroups: groupsCountRes.count || 0,
+      monitoredGroups: starred.length,
     });
     setRecentTasks(recentTasksRes.data || []);
     setRecentDirections(recentDirsRes.data || []);
-    setGroups(groupsRes.data || []);
+    setStarredGroups(starred);
   };
 
   useEffect(() => {
@@ -196,7 +218,7 @@ export default function OverviewPage() {
     );
   }
 
-  const hasData = stats.totalTasks > 0 || stats.totalMessages > 0 || groups.length > 0;
+  const hasData = stats.totalTasks > 0 || stats.totalMessages > 0 || stats.activeGroups > 0;
 
   return (
     <div className="space-y-6 fade-in">
@@ -236,7 +258,7 @@ export default function OverviewPage() {
         <StatCard label="Completed Today" value={stats.completedToday} icon={CheckCircle2} color="emerald" />
         <StatCard label="Active Directions" value={stats.activeDirections} icon={Compass} color="teal" />
         <StatCard label="Total Messages" value={stats.totalMessages.toLocaleString()} icon={MessageSquare} color="blue" />
-        <StatCard label="Active Groups" value={stats.activeGroups} icon={Clock} color="amber" />
+        <StatCard label="Monitored Groups" value={`${stats.monitoredGroups}/${stats.activeGroups}`} icon={Star} color="amber" />
       </div>
 
       {!hasData ? (
@@ -313,26 +335,66 @@ export default function OverviewPage() {
             )}
           </div>
 
-          {groups.length > 0 && (
-            <div className="bg-white rounded-xl border lg:col-span-2">
-              <div className="px-5 py-4 border-b flex items-center justify-between">
+          <div className="bg-white rounded-xl border lg:col-span-2">
+            <div className="px-5 py-4 border-b flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                 <h2 className="text-sm font-semibold text-gray-900">Monitored Groups</h2>
-                <Link to="/groups" className="text-xs text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1">
-                  View all <ArrowRight className="w-3 h-3" />
+              </div>
+              <Link to="/groups" className="text-xs text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1">
+                Manage <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+            {starredGroups.length === 0 ? (
+              <div className="p-8 text-center">
+                <Star className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">No monitored groups yet</p>
+                <p className="text-xs text-gray-400 mt-1">Star groups to monitor them here</p>
+                <Link to="/groups" className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 font-medium mt-3">
+                  Go to Groups <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0 divide-y sm:divide-y-0">
-                {groups.slice(0, 6).map((group) => (
-                  <div key={group.id} className="px-5 py-3 sm:border-r last:border-r-0 hover:bg-gray-50 transition-colors">
-                    <p className="text-sm font-medium text-gray-900 truncate">{group.name}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {group.participant_count} members
-                    </p>
-                  </div>
+            ) : (
+              <div className="divide-y">
+                {starredGroups.slice(0, 5).map((group) => (
+                  <Link key={group.id} to="/groups" className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50 transition-colors">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-gray-900 truncate">{group.name}</p>
+                        {group.today_message_count > 0 && (
+                          <span className="flex-shrink-0 w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <span className="flex items-center gap-1 text-xs text-gray-500">
+                          <Users className="w-3 h-3" />
+                          {group.participant_count}
+                        </span>
+                        <span className={`flex items-center gap-1 text-xs ${group.today_message_count > 0 ? 'text-emerald-600 font-medium' : 'text-gray-400'}`}>
+                          <MessageSquare className="w-3 h-3" />
+                          {group.today_message_count} today
+                        </span>
+                        {group.flagged_count > 0 && (
+                          <span className="flex items-center gap-1 text-xs text-amber-600 font-medium">
+                            <Activity className="w-3 h-3" />
+                            {group.flagged_count} important
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-300" />
+                  </Link>
                 ))}
+                {starredGroups.length > 5 && (
+                  <div className="px-5 py-2 text-center">
+                    <Link to="/groups" className="text-xs text-gray-500 hover:text-emerald-600">
+                      +{starredGroups.length - 5} more monitored groups
+                    </Link>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
     </div>

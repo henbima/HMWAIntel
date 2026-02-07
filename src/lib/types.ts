@@ -4,6 +4,7 @@ export interface Group {
   name: string;
   description: string | null;
   is_active: boolean;
+  is_starred: boolean;
   participant_count: number;
   created_at: string;
   updated_at: string;
