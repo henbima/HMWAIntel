@@ -34,9 +34,10 @@ function parseWhatsAppExport(text: string): ParsedMessage[] {
   const lines = text.split('\n');
 
   const patterns = [
-    /^\[(\d{1,2}\/\d{1,2}\/\d{2,4}),?\s+(\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?)\]\s*([^:]+?):\s*(.+)$/i,
-    /^(\d{1,2}\/\d{1,2}\/\d{2,4}),?\s+(\d{1,2}:\d{2}(?::\d{2})?)\s*-\s*([^:]+?):\s*(.+)$/i,
-    /^\[(\d{1,2}\/\d{1,2}\/\d{2,4})\s+(\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?)\]\s*([^:]+?):\s*(.+)$/i,
+    /^(\d{1,2}\/\d{1,2}\/\d{2,4}),?\s+(\d{1,2}[.:]\d{2}(?:[.:]\d{2})?)\s*-\s*([^:]+?):\s*(.+)$/i,
+    /^\[(\d{1,2}\/\d{1,2}\/\d{2,4}),?\s+(\d{1,2}[.:]\d{2}(?:[.:]\d{2})?\s*(?:AM|PM)?)\]\s*([^:]+?):\s*(.+)$/i,
+    /^\[(\d{1,2}\/\d{1,2}\/\d{2,4})\s+(\d{1,2}[.:]\d{2}(?:[.:]\d{2})?\s*(?:AM|PM)?)\]\s*([^:]+?):\s*(.+)$/i,
+    /^(\d{1,2}\/\d{1,2}\/\d{2,4}),?\s+(\d{1,2}[.:]\d{2}(?:[.:]\d{2})?\s*(?:AM|PM)?)\s*-\s*([^:]+?):\s*(.+)$/i,
   ];
 
   let currentMessage: ParsedMessage | null = null;
@@ -53,14 +54,18 @@ function parseWhatsAppExport(text: string): ParsedMessage[] {
           messages.push(currentMessage);
         }
 
-        const [, datePart, timePart, senderName, text] = match;
+        const [, datePart, timePart, senderName, messageText] = match;
 
         const timestamp = parseTimestamp(datePart, timePart);
+
+        if (isNaN(timestamp.getTime())) {
+          continue;
+        }
 
         currentMessage = {
           timestamp,
           senderName: senderName.trim(),
-          text: text.trim(),
+          text: messageText.trim(),
           rawLine: line
         };
 
@@ -82,16 +87,24 @@ function parseWhatsAppExport(text: string): ParsedMessage[] {
 }
 
 function parseTimestamp(datePart: string, timePart: string): Date {
-  let dateStr = datePart.replace(/\//g, '-');
-  const parts = dateStr.split('-');
+  const dateParts = datePart.split('/');
 
-  if (parts[2].length === 2) {
-    const year = parseInt(parts[2]);
-    parts[2] = (year > 50 ? '19' : '20') + parts[2];
+  if (dateParts.length !== 3) {
+    return new Date(NaN);
+  }
+
+  let day = dateParts[0];
+  let month = dateParts[1];
+  let year = dateParts[2];
+
+  if (year.length === 2) {
+    const yearNum = parseInt(year);
+    year = (yearNum > 50 ? '19' : '20') + year;
   }
 
   let hour = 0, minute = 0, second = 0;
-  const timeMatch = timePart.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?/i);
+  const normalizedTime = timePart.replace(/\./g, ':');
+  const timeMatch = normalizedTime.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?/i);
 
   if (timeMatch) {
     hour = parseInt(timeMatch[1]);
@@ -103,7 +116,7 @@ function parseTimestamp(datePart: string, timePart: string): Date {
     if (meridiem === 'AM' && hour === 12) hour = 0;
   }
 
-  const isoDate = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:${second.toString().padStart(2, '0')}Z`;
+  const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:${second.toString().padStart(2, '0')}Z`;
 
   return new Date(isoDate);
 }
