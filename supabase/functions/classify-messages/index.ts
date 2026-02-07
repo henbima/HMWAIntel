@@ -30,6 +30,7 @@ interface MessageRow {
   message_text: string;
   message_type: string;
   is_from_hendra: boolean;
+  quoted_message_id: string | null;
   timestamp: string;
   contacts: {
     display_name: string;
@@ -58,7 +59,7 @@ interface Classification {
 
 const SYSTEM_PROMPT = `You are an AI classifier for HollyMart Corp's WhatsApp business intelligence system. HollyMart is a retail company in Indonesia. Messages are from WhatsApp groups used for daily operations, management, and coordination. Most messages are in Bahasa Indonesia.
 
-You will receive an ENTIRE CONVERSATION THREAD (multiple messages over time). Classify the OVERALL CONVERSATION into EXACTLY ONE category:
+You will receive a REPLY THREAD (messages that replied to each other). This is ONE specific topic/conversation that has been separated from other interleaved topics in the same group. Classify this THREAD into EXACTLY ONE category:
 - task: An assignment, request, or to-do for someone. Someone is being asked to do something specific.
 - direction: A policy, rule, SOP change, or directive from leadership/management that others must follow.
 - report: A status update, progress report, sales figure, stock count, or operational data.
@@ -68,9 +69,9 @@ You will receive an ENTIRE CONVERSATION THREAD (multiple messages over time). Cl
 - chitchat: Casual conversation, greetings, jokes, stickers-only context, or non-business content.
 
 Return ONE JSON object with:
-- classification: one of the categories above (for the entire conversation)
+- classification: one of the categories above (for the entire thread)
 - confidence: 0.0 to 1.0 (how certain you are)
-- summary: one-line summary of the entire conversation in Bahasa Indonesia (max 150 chars)
+- summary: one-line summary of the entire thread in Bahasa Indonesia (max 150 chars)
 - priority: "low" | "normal" | "high" | "urgent"
   - urgent = needs action within hours (safety, financial loss, leadership direct order)
   - high = needs action today
@@ -82,10 +83,11 @@ Return ONE JSON object with:
 - deadline: raw deadline text if mentioned, e.g. "besok", "Jumat", "15 Feb" (null if none)
 
 IMPORTANT:
-- Read the ENTIRE conversation to understand context. A 5-hour discussion should be classified as one coherent unit.
+- This thread may span hours or days. Read the ENTIRE thread to understand the complete context.
+- Messages marked [REPLY] are replying to earlier messages in this thread.
 - Consider the sender's role and position. Messages from leadership (is_leadership=true) are more likely to be tasks or directions.
 - Messages from Hendra (the owner) that contain instructions are almost always tasks or directions.
-- If the conversation is just greetings and acknowledgments ("ok", "siap", "noted"), classify as chitchat.
+- If the thread is just greetings and acknowledgments ("ok", "siap", "noted"), classify as chitchat.
 - Return ONLY valid JSON. No markdown, no explanation.`;
 
 async function fetchUnclassifiedMessages(): Promise<MessageRow[]> {
@@ -97,7 +99,7 @@ async function fetchUnclassifiedMessages(): Promise<MessageRow[]> {
     .select(
       `
       id, wa_message_id, wa_group_id, sender_jid, sender_name,
-      message_text, message_type, is_from_hendra, timestamp,
+      message_text, message_type, is_from_hendra, quoted_message_id, timestamp,
       contacts:contact_id(display_name, role, location, department, is_leadership),
       groups:group_id(name),
       classified_items(id)
@@ -124,51 +126,100 @@ interface Conversation {
   messages: MessageRow[];
   startTime: Date;
   endTime: Date;
+  threadId: string;
 }
 
 function groupMessagesIntoConversations(messages: MessageRow[]): Conversation[] {
-  const conversations: Conversation[] = [];
-  const groupedByChat: Record<string, MessageRow[]> = {};
+  const messagesByWaId: Map<string, MessageRow> = new Map();
+  const threads: Map<string, MessageRow[]> = new Map();
+  const processedMessages = new Set<string>();
 
   for (const msg of messages) {
-    if (!groupedByChat[msg.wa_group_id]) {
-      groupedByChat[msg.wa_group_id] = [];
-    }
-    groupedByChat[msg.wa_group_id].push(msg);
+    messagesByWaId.set(msg.wa_message_id, msg);
   }
 
-  for (const [groupId, msgs] of Object.entries(groupedByChat)) {
-    msgs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  function findThreadRoot(msg: MessageRow): MessageRow {
+    let current = msg;
+    const visited = new Set<string>();
 
-    let currentConversation: MessageRow[] = [];
-    let lastTimestamp: Date | null = null;
-
-    for (const msg of msgs) {
-      const msgTime = new Date(msg.timestamp);
-
-      if (!lastTimestamp || (msgTime.getTime() - lastTimestamp.getTime()) / 60000 > CONVERSATION_TIMEOUT_MINUTES) {
-        if (currentConversation.length > 0) {
-          conversations.push({
-            groupId,
-            messages: currentConversation,
-            startTime: new Date(currentConversation[0].timestamp),
-            endTime: new Date(currentConversation[currentConversation.length - 1].timestamp),
-          });
-        }
-        currentConversation = [msg];
-      } else {
-        currentConversation.push(msg);
-      }
-
-      lastTimestamp = msgTime;
+    while (current.quoted_message_id && !visited.has(current.wa_message_id)) {
+      visited.add(current.wa_message_id);
+      const parent = messagesByWaId.get(current.quoted_message_id);
+      if (!parent) break;
+      current = parent;
     }
 
-    if (currentConversation.length > 0) {
+    return current;
+  }
+
+  function collectThread(rootMsg: MessageRow): MessageRow[] {
+    const thread: MessageRow[] = [rootMsg];
+    const rootId = rootMsg.wa_message_id;
+
+    for (const msg of messages) {
+      if (msg.wa_message_id === rootId) continue;
+
+      let current: MessageRow | undefined = msg;
+      const visited = new Set<string>();
+
+      while (current && !visited.has(current.wa_message_id)) {
+        visited.add(current.wa_message_id);
+
+        if (current.quoted_message_id === rootId) {
+          thread.push(msg);
+          break;
+        }
+
+        current = current.quoted_message_id ? messagesByWaId.get(current.quoted_message_id) : undefined;
+      }
+    }
+
+    thread.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    return thread;
+  }
+
+  for (const msg of messages) {
+    if (processedMessages.has(msg.wa_message_id)) continue;
+
+    const root = findThreadRoot(msg);
+    const threadId = root.wa_message_id;
+
+    if (!threads.has(threadId)) {
+      const threadMessages = collectThread(root);
+      threads.set(threadId, threadMessages);
+
+      for (const threadMsg of threadMessages) {
+        processedMessages.add(threadMsg.wa_message_id);
+      }
+    }
+  }
+
+  const groupedByChat: Map<string, Map<string, MessageRow[]>> = new Map();
+
+  for (const [threadId, threadMessages] of threads.entries()) {
+    const groupId = threadMessages[0].wa_group_id;
+
+    if (!groupedByChat.has(groupId)) {
+      groupedByChat.set(groupId, new Map());
+    }
+
+    groupedByChat.get(groupId)!.set(threadId, threadMessages);
+  }
+
+  const conversations: Conversation[] = [];
+
+  for (const [groupId, groupThreads] of groupedByChat.entries()) {
+    for (const [threadId, threadMessages] of groupThreads.entries()) {
+      const sortedMessages = [...threadMessages].sort(
+        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+
       conversations.push({
         groupId,
-        messages: currentConversation,
-        startTime: new Date(currentConversation[0].timestamp),
-        endTime: new Date(currentConversation[currentConversation.length - 1].timestamp),
+        messages: sortedMessages,
+        startTime: new Date(sortedMessages[0].timestamp),
+        endTime: new Date(sortedMessages[sortedMessages.length - 1].timestamp),
+        threadId,
       });
     }
   }
@@ -186,18 +237,21 @@ function buildConversationPrompt(conversation: Conversation): string {
     const role = contact?.role || "unknown";
     const isLeadership = contact?.is_leadership ? "YES" : "no";
     const time = new Date(msg.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    const isReply = msg.quoted_message_id ? " [REPLY]" : "";
 
-    return `[${i + 1}] ${time} | ${senderName} (${role}, Lead:${isLeadership}, Hendra:${msg.is_from_hendra ? "YES" : "no"})
+    return `[${i + 1}] ${time} | ${senderName} (${role}, Lead:${isLeadership}, Hendra:${msg.is_from_hendra ? "YES" : "no"})${isReply}
 "${msg.message_text}"`;
   });
 
-  return `This is a conversation thread from WhatsApp group "${groupName}" spanning ${duration} minutes with ${conversation.messages.length} messages.
+  return `This is a REPLY THREAD from WhatsApp group "${groupName}" spanning ${duration} minutes with ${conversation.messages.length} messages.
 
-Classify the ENTIRE CONVERSATION as ONE unit. Consider the full context and flow.
+These messages are all replies to each other (same conversation topic), separated from other interleaved topics in the group.
+
+Classify this SPECIFIC THREAD as ONE unit. Consider the full context and flow.
 
 ${messageParts.join("\n\n")}
 
-Return ONE classification object for the entire conversation thread.`;
+Return ONE classification object for the entire reply thread.`;
 }
 
 async function callOpenAI(
