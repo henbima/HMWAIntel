@@ -9,6 +9,7 @@ import {
   X,
   Activity,
   LogOut,
+  FileText,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../lib/auth';
@@ -17,6 +18,7 @@ const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Overview' },
   { to: '/tasks', icon: CheckSquare, label: 'Tasks' },
   { to: '/directions', icon: Compass, label: 'Directions' },
+  { to: '/briefings', icon: FileText, label: 'Briefings' },
   { to: '/groups', icon: MessageSquare, label: 'Groups' },
   { to: '/contacts', icon: Users, label: 'Contacts' },
 ];

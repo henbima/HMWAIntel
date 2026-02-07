@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import OverviewPage from './pages/OverviewPage';
 import TasksPage from './pages/TasksPage';
 import DirectionsPage from './pages/DirectionsPage';
+import BriefingsPage from './pages/BriefingsPage';
 import GroupsPage from './pages/GroupsPage';
 import ContactsPage from './pages/ContactsPage';
 import { Loader2 } from 'lucide-react';
@@ -30,6 +31,7 @@ function AppRoutes() {
         <Route index element={<OverviewPage />} />
         <Route path="tasks" element={<TasksPage />} />
         <Route path="directions" element={<DirectionsPage />} />
+        <Route path="briefings" element={<BriefingsPage />} />
         <Route path="groups" element={<GroupsPage />} />
         <Route path="contacts" element={<ContactsPage />} />
       </Route>
