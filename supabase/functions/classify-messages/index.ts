@@ -310,6 +310,7 @@ async function saveClassification(
       assigned_to: cls.assigned_to || null,
       assigned_by: cls.assigned_by || null,
       deadline: cls.deadline || null,
+      deadline_parsed: cls.deadline ? tryParseDeadline(cls.deadline) : null,
       topic: cls.topic || null,
       priority: cls.priority || "normal",
       ai_model: AI_MODEL,
