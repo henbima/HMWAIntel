@@ -1,6 +1,6 @@
 # Spec 201: Classifier Improvements — Tasks
 
-**Status:** Planned
+**Status:** Completed
 **Priority:** P0 (deadline_parsed) + P1 (task completion, model abstraction)
 
 ---
@@ -52,25 +52,25 @@
 
 ### Phase 3: AI Model Abstraction (P1)
 
-#### - [ ] Task 3.1: Refactor classify-messages with AI provider interface
+#### - [x] Task 3.1: Refactor classify-messages with AI provider interface
 **File:** `supabase/functions/classify-messages/index.ts`
 
 **Acceptance Criteria:**
-- [ ] `AIProvider` interface defined with `classify()` method
-- [ ] `OpenAIProvider` class implements the interface (extracted from current `callOpenAI()`)
-- [ ] `createAIProvider()` factory reads `AI_PROVIDER` and `AI_MODEL` env vars
-- [ ] Fallback: defaults to OpenAI + gpt-4o-mini if env vars not set
-- [ ] Existing behavior unchanged — same prompts, same output format
-- [ ] New env vars: `AI_PROVIDER` (default: "openai"), `AI_MODEL` (default: "gpt-4o-mini")
+- [x] `AIProvider` interface defined with `classify()` method
+- [x] `OpenAIProvider` class implements the interface (extracted from current `callOpenAI()`)
+- [x] `createAIProvider()` factory reads `AI_PROVIDER` and `AI_MODEL` env vars
+- [x] Fallback: defaults to OpenAI + gpt-4o-mini if env vars not set
+- [x] Existing behavior unchanged — same prompts, same output format
+- [x] New env vars: `AI_PROVIDER` (default: "openai"), `AI_MODEL` (default: "gpt-4o-mini")
 
 **Commit:** `refactor(classifier): abstract AI provider for model swappability`
 
-#### - [ ] Task 3.2: Deploy refactored classify-messages
+#### - [x] Task 3.2: Deploy refactored classify-messages
 **File:** N/A (Supabase MCP `deploy_edge_function`)
 
 **Acceptance Criteria:**
-- [ ] Deployed successfully
-- [ ] Classification still works with default env vars (OpenAI)
+- [x] Deployed successfully (v11)
+- [ ] Classification still works with default env vars (OpenAI) — needs live test
 
 ---
 
