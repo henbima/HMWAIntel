@@ -17,35 +17,35 @@
 
 **Commit:** `fix(classifier): populate deadline_parsed in classified_items`
 
-#### - [ ] Task 1.2: Deploy updated classify-messages Edge Function
+#### - [x] Task 1.2: Deploy updated classify-messages Edge Function
 **File:** N/A (Supabase MCP `deploy_edge_function`)
 
 **Acceptance Criteria:**
-- [ ] Edge Function deployed successfully (version bump from v9)
+- [x] Edge Function deployed successfully (version bump from v9 → v10)
 - [ ] Test: trigger classification → verify `deadline_parsed` is populated when deadline text exists
 
 ---
 
 ### Phase 2: Task Completion Detection (P1)
 
-#### - [ ] Task 2.1: Create detect-task-completion Edge Function
+#### - [x] Task 2.1: Create detect-task-completion Edge Function
 **File:** `supabase/functions/detect-task-completion/index.ts`
 
 **Acceptance Criteria:**
-- [ ] Fetches open tasks (status NOT IN 'done', 'cancelled')
-- [ ] For each task, searches recent messages in same group from assigned_to person
-- [ ] Matches completion keywords: "sudah", "selesai", "done", "sudah dikerjakan", "sudah beres", "sudah selesai"
-- [ ] Updates matched tasks: `status='done'`, `completed_at`, `completion_message_id`
-- [ ] Returns JSON: `{ checked: N, completed: N, errors: [] }`
-- [ ] Handles edge cases: null assigned_to, no matching group, no messages
+- [x] Fetches open tasks (status NOT IN 'done', 'cancelled')
+- [x] For each task, searches recent messages in same group from assigned_to person
+- [x] Matches completion keywords: "sudah", "selesai", "done", "sudah dikerjakan", "sudah beres", "sudah selesai"
+- [x] Updates matched tasks: `status='done'`, `completed_at`, `completion_message_id`
+- [x] Returns JSON: `{ checked: N, completed: N, errors: [] }`
+- [x] Handles edge cases: null assigned_to, no matching group, no messages
 
 **Commit:** `feat(classifier): add task completion detection edge function`
 
-#### - [ ] Task 2.2: Deploy detect-task-completion Edge Function
+#### - [x] Task 2.2: Deploy detect-task-completion Edge Function
 **File:** N/A (Supabase MCP `deploy_edge_function`)
 
 **Acceptance Criteria:**
-- [ ] Edge Function deployed and accessible
+- [x] Edge Function deployed and accessible (v1)
 - [ ] Manual invocation returns valid JSON response
 
 ---

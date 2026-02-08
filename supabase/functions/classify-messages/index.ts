@@ -10,8 +10,6 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
-const AI_MODEL = "gpt-4o-mini";
 const BATCH_SIZE = 5;
 const MAX_MESSAGES_PER_RUN = 30;
 const CONVERSATION_TIMEOUT_MINUTES = 30;
@@ -20,6 +18,78 @@ const CONVERSATION_WINDOW_HOURS = 2;
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   db: { schema: "wa_intel" },
 });
+
+// ─── AI Provider Abstraction ───────────────────────────────────────────────
+
+interface AIProvider {
+  readonly modelName: string;
+  classify(systemPrompt: string, userPrompt: string): Promise<string>;
+}
+
+class OpenAIProvider implements AIProvider {
+  readonly modelName: string;
+  private apiKey: string;
+
+  constructor(apiKey: string, model: string) {
+    this.apiKey = apiKey;
+    this.modelName = model;
+  }
+
+  async classify(systemPrompt: string, userPrompt: string): Promise<string> {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: this.modelName,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.1,
+        response_format: { type: "json_object" },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`OpenAI API error ${response.status}: ${errorBody}`);
+    }
+
+    const result = await response.json();
+    const content = result.choices?.[0]?.message?.content;
+
+    if (!content) {
+      throw new Error("Empty response from OpenAI");
+    }
+
+    return content;
+  }
+}
+
+// Future: class GeminiProvider implements AIProvider { ... }
+// Future: class ClaudeProvider implements AIProvider { ... }
+
+function createAIProvider(): AIProvider {
+  const provider = Deno.env.get("AI_PROVIDER") || "openai";
+  const model = Deno.env.get("AI_MODEL") || "gpt-4o-mini";
+
+  switch (provider) {
+    case "openai": {
+      const apiKey = Deno.env.get("OPENAI_API_KEY");
+      if (!apiKey) {
+        throw new Error("OPENAI_API_KEY not configured");
+      }
+      return new OpenAIProvider(apiKey, model);
+    }
+    default:
+      throw new Error(`Unknown AI provider: ${provider}. Supported: openai`);
+  }
+}
+
+// ─── Types ─────────────────────────────────────────────────────────────────
 
 interface MessageRow {
   id: string;
@@ -254,38 +324,12 @@ ${messageParts.join("\n\n")}
 Return ONE classification object for the entire reply thread.`;
 }
 
-async function callOpenAI(
+async function callAI(
+  aiProvider: AIProvider,
   systemPrompt: string,
   userPrompt: string
 ): Promise<Classification[]> {
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: AI_MODEL,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0.1,
-      response_format: { type: "json_object" },
-    }),
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`OpenAI API error ${response.status}: ${errorBody}`);
-  }
-
-  const result = await response.json();
-  const content = result.choices?.[0]?.message?.content;
-
-  if (!content) {
-    throw new Error("Empty response from OpenAI");
-  }
+  const content = await aiProvider.classify(systemPrompt, userPrompt);
 
   const parsed = JSON.parse(content);
   const items = parsed.results || parsed.classifications || parsed.items || parsed;
@@ -298,7 +342,8 @@ async function callOpenAI(
 
 async function saveClassification(
   msg: MessageRow,
-  cls: Classification
+  cls: Classification,
+  aiProvider: AIProvider
 ): Promise<string | null> {
   const { data, error } = await supabase
     .from("classified_items")
@@ -313,7 +358,7 @@ async function saveClassification(
       deadline_parsed: cls.deadline ? tryParseDeadline(cls.deadline) : null,
       topic: cls.topic || null,
       priority: cls.priority || "normal",
-      ai_model: AI_MODEL,
+      ai_model: aiProvider.modelName,
       classified_at: new Date().toISOString(),
     })
     .select("id")
@@ -442,12 +487,8 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    if (!OPENAI_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "OPENAI_API_KEY not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const aiProvider = createAIProvider();
+    console.log(`Using AI provider: ${aiProvider.modelName}`);
 
     const messages = await fetchUnclassifiedMessages();
 
@@ -471,11 +512,11 @@ Deno.serve(async (req: Request) => {
 
       let classification: Classification;
       try {
-        const results = await callOpenAI(SYSTEM_PROMPT, prompt);
+        const results = await callAI(aiProvider, SYSTEM_PROMPT, prompt);
         classification = results[0];
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
-        console.error(`OpenAI error for conversation in ${conversation.groupId}:`, errMsg);
+        console.error(`AI error for conversation in ${conversation.groupId}:`, errMsg);
         errors.push(`Conversation ${conversation.groupId}: ${errMsg}`);
         continue;
       }
@@ -486,7 +527,7 @@ Deno.serve(async (req: Request) => {
       }
 
       for (const msg of conversation.messages) {
-        const classifiedItemId = await saveClassification(msg, classification);
+        const classifiedItemId = await saveClassification(msg, classification, aiProvider);
         if (!classifiedItemId) continue;
         totalProcessed++;
       }
