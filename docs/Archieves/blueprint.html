@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Blueprint: HollyMart WhatsApp Intelligence System</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0e14;--s1:#111820;--s2:#1a2130;--s3:#222d3d;
+  --b:#2a3545;--t:#dce4f0;--t2:#7e8da0;
+  --o:#f0883e;--o2:#ff6b35;--g:#3fb950;--r:#f85149;
+  --y:#d29922;--bl:#58a6ff;--p:#bc8cff;--tl:#39d2c0;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t);line-height:1.7;padding:1.5rem;max-width:1200px;margin:0 auto}
+.tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:600;letter-spacing:.15em;text-transform:uppercase;padding:.2rem .7rem;border-radius:3px;margin-bottom:.6rem}
+.tag-o{background:rgba(240,136,62,.15);color:var(--o);border:1px solid rgba(240,136,62,.3)}
+.tag-bl{background:rgba(88,166,255,.12);color:var(--bl);border:1px solid rgba(88,166,255,.25)}
+.tag-g{background:rgba(63,185,80,.12);color:var(--g);border:1px solid rgba(63,185,80,.25)}
+.tag-p{background:rgba(188,140,255,.12);color:var(--p);border:1px solid rgba(188,140,255,.25)}
+.tag-tl{background:rgba(57,210,192,.12);color:var(--tl);border:1px solid rgba(57,210,192,.25)}
+.tag-y{background:rgba(210,153,34,.12);color:var(--y);border:1px solid rgba(210,153,34,.25)}
+.tag-r{background:rgba(248,81,73,.12);color:var(--r);border:1px solid rgba(248,81,73,.25)}
+
+h1{font-family:'Fraunces',serif;font-size:clamp(1.6rem,3.5vw,2.4rem);font-weight:900;line-height:1.2;margin-bottom:.4rem}
+h1 span{color:var(--o)}
+h2{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:700;margin-bottom:.8rem;line-height:1.3}
+h3{font-size:1rem;font-weight:700;margin-bottom:.5rem}
+h4{font-size:.88rem;font-weight:700;margin-bottom:.3rem}
+p,li{color:var(--t2);font-size:.88rem}
+p{margin-bottom:.6rem}
+section{margin-bottom:3rem}
+.sub{color:var(--t2);font-size:.92rem;max-width:700px}
+
+/* Cards & Boxes */
+.card{background:var(--s1);border:1px solid var(--b);border-radius:10px;padding:1.2rem;margin-bottom:.8rem}
+.card-highlight{border-color:var(--o)}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:.8rem}
+.grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:.8rem}
+.grid-4{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.8rem}
+
+/* Module cards */
+.mod{background:var(--s1);border:2px solid var(--b);border-radius:10px;padding:1.2rem;position:relative}
+.mod .num{position:absolute;top:-10px;left:14px;font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:600;background:var(--s2);border:1px solid var(--b);padding:.15rem .5rem;border-radius:3px;color:var(--t2)}
+.mod .emoji{font-size:1.4rem;margin-bottom:.4rem}
+.mod ul{list-style:none;padding:0;margin:.5rem 0 0}
+.mod li{font-size:.78rem;padding:.15rem 0 .15rem 1rem;position:relative;color:var(--t2)}
+.mod li::before{content:'›';position:absolute;left:0;color:var(--o);font-weight:700}
+.effort{display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap}
+.effort-tag{font-family:'JetBrains Mono',monospace;font-size:.6rem;padding:.15rem .4rem;border-radius:3px;background:var(--s2);color:var(--t2);border:1px solid var(--b)}
+.effort-tag.time{color:var(--bl)}
+.effort-tag.diff{color:var(--y)}
+.effort-tag.lines{color:var(--p)}
+
+/* Arch diagram */
+.arch{background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:1.5rem;overflow-x:auto}
+.arch svg{width:100%;min-width:900px;height:auto;display:block}
+
+/* Repo cards */
+.repo{background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:1rem;display:flex;flex-direction:column;gap:.3rem}
+.repo-name{font-family:'JetBrains Mono',monospace;font-size:.82rem;font-weight:600;color:var(--bl)}
+.repo-desc{font-size:.76rem;color:var(--t2)}
+.repo-use{font-size:.72rem;color:var(--o);font-weight:500;margin-top:auto;padding-top:.3rem}
+
+/* Bar chart for effort */
+.bar-row{display:flex;align-items:center;gap:.6rem;margin:.3rem 0}
+.bar-label{font-size:.75rem;width:120px;flex-shrink:0;text-align:right;color:var(--t2)}
+.bar-track{flex:1;height:22px;background:var(--s2);border-radius:4px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:.5rem;font-size:.6rem;font-weight:600;color:var(--bg);min-width:30px}
+.bar-fill.bl{background:var(--bl)}
+.bar-fill.g{background:var(--g)}
+.bar-fill.y{background:var(--y)}
+.bar-fill.p{background:var(--p)}
+.bar-fill.o{background:var(--o)}
+.bar-fill.tl{background:var(--tl)}
+
+/* Decision tree */
+.tree{background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:1.5rem}
+.tree-q{font-size:.9rem;font-weight:700;color:var(--t);margin-bottom:.8rem;text-align:center}
+.tree-row{display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap}
+.tree-opt{background:var(--s2);border:2px solid var(--b);border-radius:10px;padding:1rem;width:280px;text-align:center;transition:border-color .2s}
+.tree-opt:hover{border-color:var(--o)}
+.tree-opt h4{font-size:.85rem;margin-bottom:.3rem}
+.tree-opt p{font-size:.75rem;margin:0}
+.tree-opt .arrow{color:var(--o);font-size:.8rem;margin-top:.4rem;display:block}
+
+/* Comparison effort */
+.compare-block{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem}
+.compare-side{background:var(--s2);border-radius:10px;padding:1rem;border:1px solid var(--b)}
+.compare-side h4{text-align:center;margin-bottom:.6rem;font-size:.85rem}
+.compare-side.left{border-color:var(--r)}
+.compare-side.right{border-color:var(--g)}
+
+/* Quote box */
+.quote{background:var(--s2);border-left:3px solid var(--tl);padding:.8rem 1rem;border-radius:0 8px 8px 0;margin:.8rem 0;font-size:.82rem;color:var(--t2);font-style:italic}
+.quote .src{display:block;font-style:normal;font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--tl);margin-top:.3rem}
+
+@media(max-width:768px){
+  body{padding:1rem}.grid-2,.grid-3,.grid-4,.compare-block{grid-template-columns:1fr}
+  .tree-row{flex-direction:column;align-items:center}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<section style="text-align:center;padding:2rem 0 1.5rem;border-bottom:1px solid var(--b)">
+  <span class="tag tag-o">Project Blueprint — DIY Build</span>
+  <h1>HollyMart <span>WA Intelligence</span></h1>
+  <p class="sub" style="margin:0 auto">Seberapa besar projectnya? Seberapa sulit? Apa yang bisa di-fork? Dan bagaimana AI bisa bantu kamu build ini dengan cepat?</p>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- SECTION 1: THE HONEST ASSESSMENT -->
+<!-- ═══════════════════════════════════════ -->
+<section>
+  <span class="tag tag-bl">Honest Assessment</span>
+  <h2>Seberapa Besar Project Ini?</h2>
+  
+  <div class="quote">
+    "Yang paling sulit sebenarnya adalah memberi AI konteks yang tepat, lengkap dan benar." — Kamu, 2 menit lalu. Dan itu kunci utamanya. Kalau konteksnya benar, AI bisa bantu kamu build ini dalam hitungan hari, bukan bulan.
+    <span class="src">Ini bukan project raksasa. Ini 5 modul kecil yang saling terhubung.</span>
+  </div>
+
+  <h3 style="margin-top:1.2rem">Effort Visualization</h3>
+  <div class="bar-row">
+    <span class="bar-label">WA Gateway</span>
+    <div class="bar-track"><div class="bar-fill bl" style="width:20%">~1-2 hari</div></div>
+  </div>
+  <div class="bar-row">
+    <span class="bar-label">Database Schema</span>
+    <div class="bar-track"><div class="bar-fill g" style="width:12%">~3 jam</div></div>
+  </div>
+  <div class="bar-row">
+    <span class="bar-label">AI Classifier</span>
+    <div class="bar-track"><div class="bar-fill y" style="width:25%">~2-3 hari</div></div>
+  </div>
+  <div class="bar-row">
+    <span class="bar-label">Daily Briefing</span>
+    <div class="bar-track"><div class="bar-fill p" style="width:15%">~1 hari</div></div>
+  </div>
+  <div class="bar-row">
+    <span class="bar-label">Dashboard / Visual</span>
+    <div class="bar-track"><div class="bar-fill o" style="width:35%">~3-5 hari</div></div>
+  </div>
+  <div class="bar-row">
+    <span class="bar-label">RAG Knowledge Base</span>
+    <div class="bar-track"><div class="bar-fill tl" style="width:28%">~2-3 hari</div></div>
+  </div>
+  <p style="font-size:.75rem;color:var(--t2);margin-top:.5rem;font-style:italic">Total: ~2-3 minggu coding dengan AI assistance. Bukan 3 bulan. Bukan monster project.</p>
+
+  <div class="compare-block">
+    <div class="compare-side left">
+      <h4 style="color:var(--r)">❌ Tanpa AI Assistance</h4>
+      <p style="font-size:.78rem;text-align:center">2-3 bulan full-time developer<br>5,000-8,000 lines of code<br>Banyak debugging & trial-error</p>
+    </div>
+    <div class="compare-side right">
+      <h4 style="color:var(--g)">✅ Dengan AI + Fork Basis</h4>
+      <p style="font-size:.78rem;text-align:center">2-3 minggu (evenings/weekends OK)<br>~1,500-2,500 lines of custom code<br>Sebagian besar AI-generated & tested</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- SECTION 2: ARCHITECTURE -->
+<!-- ═══════════════════════════════════════ -->
+<section>
+  <span class="tag tag-p">Architecture</span>
+  <h2>System Architecture</h2>
+  <p>5 modul independen. Masing-masing bisa di-build & test sendiri. Gagal di satu modul tidak menghancurkan yang lain.</p>
+
+  <div class="arch">
+    <svg viewBox="0 0 1000 520" xmlns="http://www.w3.org/2000/svg">
+      <!-- Background grid dots -->
+      <defs>
+        <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse">
+          <circle cx="10" cy="10" r=".5" fill="#2a3545" opacity=".5"/>
+        </pattern>
+      </defs>
+      <rect width="1000" height="520" fill="url(#dots)"/>
+      
+      <!-- MODULE 1: WA GATEWAY -->
+      <rect x="30" y="40" width="180" height="120" rx="10" fill="#111820" stroke="#58a6ff" stroke-width="2"/>
+      <text x="120" y="65" text-anchor="middle" fill="#58a6ff" font-family="JetBrains Mono" font-size="8" font-weight="600">MODULE 1</text>
+      <text x="120" y="85" text-anchor="middle" fill="#dce4f0" font-family="DM Sans" font-size="12" font-weight="700">WA Gateway</text>
+      <text x="120" y="103" text-anchor="middle" fill="#7e8da0" font-family="DM Sans" font-size="8">Baileys + Node.js</text>
+      <text x="120" y="117" text-anchor="middle" fill="#7e8da0" font-family="DM Sans" font-size="8">Listen all groups</text>
+      <text x="120" y="131" text-anchor="middle" fill="#7e8da0" font-family="DM Sans" font-size="8">Emit raw messages</text>
+      <text x="120" y="148" text-anchor="middle" fill="#58a6ff" font-family="JetBrains Mono" font-size="7">📱 Nomor cadangan</text>
+
+      <!-- Arrow 1→2 -->
+      <line x1="210" y1="100" x2="275" y2="100" stroke="#2a3545" stroke-width="1.5"/>
+      <polygon points="275,95 285,100 275,105" fill="#f0883e"/>
+      <text x="247" y="90" text-anchor="middle" fill="#7e8da0" font-family="JetBrains Mono" font-size="6">webhook</text>
+
+      <!-- MODULE 2: DATABASE -->
+      <rect x="285" y="40" width="180" height="120" rx="10" fill="#111820" stroke="#3fb950" stroke-width="2"/>
+      <text x="375" y="65" text-anchor="middle" fill="#3fb950" font-family="JetBrains Mono" font-size="8" font-weight="600">MODULE 2</text>
+      <text x="375" y="85" text-anchor="middle" fill="#dce4f0" font-family="DM Sans" font-size="12" font-weight="700">Supabase DB</text>
+      <text x="375" y="103" text-anchor="middle" fill="#7e8da0" font-family="DM Sans" font-size="8">PostgreSQL + pgvector</text>
+      <text x="375" y="117" text-anchor="middle" fill="#7e8da0" font-family="DM Sans" font-size="8">messages, tasks,</text>
+      <text x="375" y="131" text-anchor="middle" fill="#7e8da0" font-family="DM Sans" font-size="8">directions, embeddings</text>
+      <text x="375" y="148" text-anchor="middle" fill="#3fb950" font-family="JetBrains Mono" font-size="7">🗄️ Free tier = cukup</text>
+
+      <!-- Arrow 2→3 -->
+      <line x1="465" y1="100" x2="530" y2="100" stroke="#2a3545" stroke-width="1.5"/>
+      <polygon points="530,95 540,100 530,105" fill="#f0883e"/>
+      <text x="497" y="90" text-anchor="middle" fill="#7e8da0" font-family="JetBrains Mono" font-size="6">trigger</text>
+
+      <!-- MODULE 3: AI CLASSIFIER -->
+      <rect x="540" y="40" width="180" height="120" rx="10" fill="#111820" stroke="#d29922" stroke-width="2"/>
+      <text x="630" y="65" text-anchor="middle" fill="#d29922" font-family="JetBrains Mono" font-size="8" font-weight="600">MODULE 3</text>
+      <text x="630" y="85" text-anchor="middle" fill="#dce4f0" font-family="DM Sans" font-size="12" font-weight="700">AI Classifier</text>
+      <text x="630" y="103" text-anchor="middle" fill="#7e8da0" font-family="DM Sans" font-size="8">Claude/GPT/Gemini API</text>
+      <text x="630" y="117" text-anchor="middle" fill="#7e8da0" font-family="DM Sans" font-size="8">Classify: task/direction/</text>
+      <text x="630" y="131" text-anchor="middle" fill="#7e8da0" font-family="DM Sans" font-size="8">report/noise</text>
+      <text x="630" y="148" text-anchor="middle" fill="#d29922" font-family="JetBrains Mono" font-size="7">🧠 + Extract entities</text>
+
+      <!-- Arrow 3→4 (down) -->
+      <line x1="630" y1="160" x2="630" y2="220" stroke="#2a3545" stroke-width="1.5"/>
+      <polygon points="625,220 630,230 635,220" fill="#f0883e"/>
+
+      <!-- MODULE 4: DAILY BRIEFING -->
+      <rect x="540" y="230" width="180" height="120" rx="10" fill="#111820" stroke="#bc8cff" stroke-width="2"/>
+      <text x="630" y="255" text-anchor="middle" fill="#bc8cff" font-family="JetBrains Mono" font-size="8" font-weight="600">MODULE 4</text>
+      <text x="630" y="275" text-anchor="middle" fill="#dce4f0" font-family="DM Sans" font-size="12" font-weight="700">Daily Briefing</text>
+      <text x="630" y="293" text-anchor="middle" fill="#7e8da0" font-family="DM Sans" font-size="8">Cron job: setiap pagi</text>
+      <text x="630" y="307" text-anchor="middle" fill="#7e8da0" font-family="DM Sans" font-size="8">Summarize yesterday</text>
+      <text x="630" y="321" text-anchor="middle" fill="#7e8da0" font-family="DM Sans" font-size="8">→ WA / Email / Telegram</text>
+      <text x="630" y="338" text-anchor="middle" fill="#bc8cff" font-family="JetBrains Mono" font-size="7">📊 To: Hendra, jam 7 pagi</text>
+
+      <!-- MODULE 5: DASHBOARD -->
+      <rect x="795" y="40" width="180" height="120" rx="10" fill="#111820" stroke="#f0883e" stroke-width="2"/>
+      <text x="885" y="65" text-anchor="middle" fill="#f0883e" font-family="JetBrains Mono" font-size="8" font-weight="600">MODULE 5</text>
+      <text x="885" y="85" text-anchor="middle" fill="#dce4f0" font-family="DM Sans" font-size="12" font-weight="700">Dashboard</text>
+      <text x="885" y="103" text-anchor="middle" fill="#7e8da0" font-family="DM Sans" font-size="8">Next.js / React</text>
+      <text x="885" y="117" text-anchor="middle" fill="#7e8da0" font-family="DM Sans" font-size="8">Kanban task board</text>
+      <text x="885" y="131" text-anchor="middle" fill="#7e8da0" font-family="DM Sans" font-size="8">Search knowledge base</text>
+      <text x="885" y="148" text-anchor="middle" fill="#f0883e" font-family="JetBrains Mono" font-size="7">👁️ Visual overview</text>
+
+      <!-- Arrow 2→5 -->
+      <line x1="465" y1="70" x2="795" y2="70" stroke="#2a3545" stroke-width="1" stroke-dasharray="4,4"/>
+      <text x="630" y="65" text-anchor="middle" fill="#7e8da0" font-family="JetBrains Mono" font-size="6">Supabase Realtime</text>
+
+      <!-- MODULE 6: RAG KB (below DB) -->
+      <rect x="285" y="230" width="180" height="120" rx="10" fill="#111820" stroke="#39d2c0" stroke-width="2"/>
+      <text x="375" y="255" text-anchor="middle" fill="#39d2c0" font-family="JetBrains Mono" font-size="8" font-weight="600">MODULE 6 (fase 2)</text>
+      <text x="375" y="275" text-anchor="middle" fill="#dce4f0" font-family="DM Sans" font-size="12" font-weight="700">RAG Knowledge Base</text>
+      <text x="375" y="293" text-anchor="middle" fill="#7e8da0" font-family="DM Sans" font-size="8">pgvector embeddings</text>
+      <text x="375" y="307" text-anchor="middle" fill="#7e8da0" font-family="DM Sans" font-size="8">"Apa arahan Hendra soal</text>
+      <text x="375" y="321" text-anchor="middle" fill="#7e8da0" font-family="DM Sans" font-size="8"> promo Ramadan?" → answer</text>
+      <text x="375" y="338" text-anchor="middle" fill="#39d2c0" font-family="JetBrains Mono" font-size="7">🔍 Semantic search</text>
+
+      <!-- Arrow DB→RAG -->
+      <line x1="375" y1="160" x2="375" y2="230" stroke="#2a3545" stroke-width="1.5"/>
+      <polygon points="370,220 375,230 380,220" fill="#39d2c0"/>
+
+      <!-- Arrow RAG→Dashboard -->
+      <line x1="465" y1="290" x2="795" y2="145" stroke="#2a3545" stroke-width="1" stroke-dasharray="4,4"/>
+
+      <!-- LEGEND -->
+      <rect x="30" y="400" width="940" height="100" rx="8" fill="#111820" stroke="#2a3545" stroke-width="1"/>
+      <text x="50" y="425" fill="#7e8da0" font-family="JetBrains Mono" font-size="9" font-weight="600">TECH STACK:</text>
+      
+      <rect x="50" y="440" width="10" height="10" rx="2" fill="#58a6ff"/><text x="68" y="449" fill="#7e8da0" font-family="DM Sans" font-size="8">Node.js + Baileys (WA)</text>
+      <rect x="220" y="440" width="10" height="10" rx="2" fill="#3fb950"/><text x="238" y="449" fill="#7e8da0" font-family="DM Sans" font-size="8">Supabase (DB + Auth + Realtime)</text>
+      <rect x="460" y="440" width="10" height="10" rx="2" fill="#d29922"/><text x="478" y="449" fill="#7e8da0" font-family="DM Sans" font-size="8">Claude / Gemini API (AI)</text>
+      <rect x="660" y="440" width="10" height="10" rx="2" fill="#f0883e"/><text x="678" y="449" fill="#7e8da0" font-family="DM Sans" font-size="8">Next.js + React (Frontend)</text>
+
+      <text x="50" y="478" fill="#7e8da0" font-family="JetBrains Mono" font-size="9" font-weight="600">KENAPA STACK INI:</text>
+      <text x="50" y="492" fill="#7e8da0" font-family="DM Sans" font-size="8">Supabase = 1 platform untuk DB + Auth + Realtime + Vector + Storage + Edge Functions. Free tier generous. Kamu sudah familiar JS/TS.</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- SECTION 3: MODULE BREAKDOWN -->
+<!-- ═══════════════════════════════════════ -->
+<section>
+  <span class="tag tag-y">Module Breakdown</span>
+  <h2>Tiap Modul: Apa, Bagaimana, Berapa Lama</h2>
+  
+  <div class="grid-2">
+    <!-- M1 -->
+    <div class="mod" style="border-color:var(--bl)">
+      <span class="num" style="color:var(--bl)">MODULE 1</span>
+      <div class="emoji">📱</div>
+      <h3>WhatsApp Gateway</h3>
+      <p style="font-size:.8rem">Listener yang connect ke WA via Baileys, membaca semua pesan dari semua grup, dan forward ke database.</p>
+      <ul>
+        <li>Baileys library — scan QR, connect, listen events</li>
+        <li>Event: messages.upsert → parse sender, group, text, timestamp</li>
+        <li>Forward ke Supabase via REST API atau direct insert</li>
+        <li>Handle reconnect, auth state persistence</li>
+        <li>Run sebagai long-running Node.js process (PM2 / systemd)</li>
+      </ul>
+      <div class="effort">
+        <span class="effort-tag time">⏱ 1-2 hari</span>
+        <span class="effort-tag diff">⚡ Mudah</span>
+        <span class="effort-tag lines">~200-400 LOC</span>
+      </div>
+    </div>
+
+    <!-- M2 -->
+    <div class="mod" style="border-color:var(--g)">
+      <span class="num" style="color:var(--g)">MODULE 2</span>
+      <div class="emoji">🗄️</div>
+      <h3>Database (Supabase)</h3>
+      <p style="font-size:.8rem">Schema PostgreSQL di Supabase. Tabel untuk messages, classified items, tasks, dan vector embeddings.</p>
+      <ul>
+        <li><code>messages</code> — raw: group_id, sender, text, timestamp, media_type</li>
+        <li><code>classified_items</code> — type (task/direction/report/noise), extracted entities</li>
+        <li><code>tasks</code> — assigned_to, status, deadline, source_message_id</li>
+        <li><code>directions</code> — from Hendra, searchable knowledge base</li>
+        <li><code>embeddings</code> — pgvector untuk RAG (fase 2)</li>
+      </ul>
+      <div class="effort">
+        <span class="effort-tag time">⏱ 3 jam</span>
+        <span class="effort-tag diff">⚡ Mudah</span>
+        <span class="effort-tag lines">~100 LOC (SQL migrations)</span>
+      </div>
+    </div>
+
+    <!-- M3 -->
+    <div class="mod" style="border-color:var(--y)">
+      <span class="num" style="color:var(--y)">MODULE 3</span>
+      <div class="emoji">🧠</div>
+      <h3>AI Classifier</h3>
+      <p style="font-size:.8rem">Ini INTI project. Supabase Edge Function yang dipanggil setiap pesan masuk. AI classify dan extract entities.</p>
+      <ul>
+        <li>Trigger: Supabase DB webhook on new message insert</li>
+        <li>Prompt engineering: classify → task / direction / report / question / noise</li>
+        <li>Entity extraction: siapa assign ke siapa, deadline, topik</li>
+        <li>Special rule: pesan dari Hendra → otomatis flag sebagai "Direction"</li>
+        <li>Batch mode juga OK — classify per jam, bukan per pesan (hemat API cost)</li>
+        <li><strong>Ini bagian yang butuh iterasi terbanyak — tuning prompt</strong></li>
+      </ul>
+      <div class="effort">
+        <span class="effort-tag time">⏱ 2-3 hari (+ iterasi)</span>
+        <span class="effort-tag diff">⚠️ Medium</span>
+        <span class="effort-tag lines">~300-500 LOC</span>
+      </div>
+    </div>
+
+    <!-- M4 -->
+    <div class="mod" style="border-color:var(--p)">
+      <span class="num" style="color:var(--p)">MODULE 4</span>
+      <div class="emoji">📬</div>
+      <h3>Daily Briefing</h3>
+      <p style="font-size:.8rem">Cron job (Supabase Edge Function + cron, atau external cron). Jam 7 pagi, query yesterday's data, summarize, kirim.</p>
+      <ul>
+        <li>Query: all classified items from last 24h, grouped by group</li>
+        <li>AI summarize: "3 task baru, 1 overdue, 2 direction from Hendra"</li>
+        <li>Format: clean text summary</li>
+        <li>Deliver: kirim via Baileys ke WA Hendra, atau email, atau Telegram bot</li>
+        <li>Optional: weekly digest juga</li>
+      </ul>
+      <div class="effort">
+        <span class="effort-tag time">⏱ 1 hari</span>
+        <span class="effort-tag diff">⚡ Mudah</span>
+        <span class="effort-tag lines">~200-300 LOC</span>
+      </div>
+    </div>
+
+    <!-- M5 -->
+    <div class="mod" style="border-color:var(--o)">
+      <span class="num" style="color:var(--o)">MODULE 5</span>
+      <div class="emoji">👁️</div>
+      <h3>Dashboard (Visual)</h3>
+      <p style="font-size:.8rem">Web app — ini yang kamu "lihat". Kanban board tasks, searchable directions, group activity overview.</p>
+      <ul>
+        <li>Next.js + Supabase client — realtime subscriptions</li>
+        <li>Page 1: Kanban board — tasks by status (new/progress/stuck/done)</li>
+        <li>Page 2: Direction log — semua arahan Hendra, searchable</li>
+        <li>Page 3: Group overview — activity per grup, flagged items</li>
+        <li>Page 4: Search — full-text + semantic search across all messages</li>
+        <li><strong>Ini yang paling "besar" tapi AI sangat cepat generate UI</strong></li>
+      </ul>
+      <div class="effort">
+        <span class="effort-tag time">⏱ 3-5 hari</span>
+        <span class="effort-tag diff">⚠️ Medium</span>
+        <span class="effort-tag lines">~800-1200 LOC</span>
+      </div>
+    </div>
+
+    <!-- M6 -->
+    <div class="mod" style="border-color:var(--tl)">
+      <span class="num" style="color:var(--tl)">MODULE 6 — Fase 2</span>
+      <div class="emoji">🔍</div>
+      <h3>RAG Knowledge Base</h3>
+      <p style="font-size:.8rem">Semantic search. "Apa kata Hendra soal kebijakan retur?" → AI jawab berdasarkan histori chat yang relevan.</p>
+      <ul>
+        <li>Generate embeddings (OpenAI text-embedding-3-small) for directions & important messages</li>
+        <li>Store di Supabase pgvector — sama database, no extra infra</li>
+        <li>Query: user question → embed → similarity search → context → AI answer</li>
+        <li>Use case: onboarding orang baru, cari kebijakan lama, institutional memory</li>
+        <li>Optional: Zilliz Cloud jika butuh skala lebih besar nanti</li>
+      </ul>
+      <div class="effort">
+        <span class="effort-tag time">⏱ 2-3 hari</span>
+        <span class="effort-tag diff">⚠️ Medium</span>
+        <span class="effort-tag lines">~300-400 LOC</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- SECTION 4: GITHUB REPOS TO FORK -->
+<!-- ═══════════════════════════════════════ -->
+<section>
+  <span class="tag tag-g">Starting Points</span>
+  <h2>GitHub Repos: Jangan Mulai dari Nol</h2>
+  <p>Ini repo-repo yang bisa kamu fork, pelajari, atau ambil potongan kode-nya sebagai basis.</p>
+
+  <div class="grid-3">
+    <div class="repo">
+      <span class="tag tag-bl" style="width:fit-content;margin-bottom:.2rem">WA Gateway</span>
+      <div class="repo-name">WhiskeySockets/Baileys</div>
+      <div class="repo-desc">Library inti. WebSocket-based, TypeScript, no browser needed. Ini yang dipakai OpenClaw, Evolution API, dan semua tool WA lainnya.</div>
+      <div class="repo-use">→ BASIS UTAMA untuk Module 1. Fork repo, pelajari example.ts.</div>
+    </div>
+    <div class="repo">
+      <span class="tag tag-bl" style="width:fit-content;margin-bottom:.2rem">WA Gateway (REST)</span>
+      <div class="repo-name">nizarfadlan/baileys-api</div>
+      <div class="repo-desc">Baileys dibungkus sebagai REST API dengan Prisma ORM + multi-session. Sudah ada webhook, session management, dan database support.</div>
+      <div class="repo-use">→ FORK INI jika mau REST API wrapper langsung jadi. Ganti DB ke Supabase.</div>
+    </div>
+    <div class="repo">
+      <span class="tag tag-bl" style="width:fit-content;margin-bottom:.2rem">WA Gateway (Full)</span>
+      <div class="repo-name">farinchan/chatery_whatsapp</div>
+      <div class="repo-desc">Express.js + Baileys. Multi-session, WebSocket events, group management, media handling, persistent store. Sangat lengkap.</div>
+      <div class="repo-use">→ Referensi terbaik untuk group message handling & media support.</div>
+    </div>
+    <div class="repo">
+      <span class="tag tag-bl" style="width:fit-content;margin-bottom:.2rem">WA + MCP + AI</span>
+      <div class="repo-name">jlucaso1/whatsapp-mcp-ts</div>
+      <div class="repo-desc">Baileys + SQLite + Model Context Protocol. Menyimpan semua chat ke DB lokal, bisa di-query oleh AI (Claude/Cursor).</div>
+      <div class="repo-use">→ Arsitektur WA→DB→AI paling clean. Ganti SQLite → Supabase.</div>
+    </div>
+    <div class="repo">
+      <span class="tag tag-tl" style="width:fit-content;margin-bottom:.2rem">RAG + Supabase</span>
+      <div class="repo-name">supabase-community/chatgpt-your-files</div>
+      <div class="repo-desc">Production-ready RAG: Supabase + pgvector + Next.js + OpenAI. Upload documents → embed → chat with your files.</div>
+      <div class="repo-use">→ BASIS untuk Module 6. Ganti "files" dengan "WA messages & directions".</div>
+    </div>
+    <div class="repo">
+      <span class="tag tag-y" style="width:fit-content;margin-bottom:.2rem">WA Chat → AI Summary</span>
+      <div class="repo-name">firstlinkai/Daily-WhatsApp-Group-Summary</div>
+      <div class="repo-desc">n8n workflow: Evolution API → Google Sheets → GPT summarize → kirim ke WA. Template lengkap untuk daily briefing.</div>
+      <div class="repo-use">→ Pelajari prompt & logic-nya untuk Module 3 & 4, lalu implementasi sendiri.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- SECTION 5: BUILD STRATEGY -->
+<!-- ═══════════════════════════════════════ -->
+<section>
+  <span class="tag tag-o">Build Strategy</span>
+  <h2>Bagaimana Sebaiknya Ini Dilakukan?</h2>
+
+  <div class="tree">
+    <div class="tree-q">Pertanyaan pertama: Fase berapa dulu?</div>
+    <div class="tree-row">
+      <div class="tree-opt" style="border-color:var(--g)">
+        <h4 style="color:var(--g)">🟢 Fase 1: Listen & Store</h4>
+        <p>Module 1 + 2 saja. Baileys + Supabase. Semua chat masuk ke database. Belum ada AI. Belum ada dashboard.</p>
+        <p style="color:var(--g);font-weight:600;margin-top:.3rem">~2-3 hari. Langsung mulai collect data.</p>
+        <span class="arrow">↓ Lalu lanjut ke Fase 2</span>
+      </div>
+      <div class="tree-opt" style="border-color:var(--y)">
+        <h4 style="color:var(--y)">🟡 Fase 2: Classify & Brief</h4>
+        <p>Tambah Module 3 + 4. AI classify pesan + daily briefing ke WA kamu. Data sudah ada dari Fase 1.</p>
+        <p style="color:var(--y);font-weight:600;margin-top:.3rem">~3-4 hari. Kamu mulai dapat morning recap.</p>
+        <span class="arrow">↓ Lalu lanjut ke Fase 3</span>
+      </div>
+      <div class="tree-opt" style="border-color:var(--o)">
+        <h4 style="color:var(--o)">🟠 Fase 3: See & Search</h4>
+        <p>Tambah Module 5 + 6. Dashboard visual + RAG knowledge base. Full experience.</p>
+        <p style="color:var(--o);font-weight:600;margin-top:.3rem">~5-7 hari. Kanban, search, full visual.</p>
+        <span class="arrow">↓ Lalu... HMCS integration</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="quote" style="margin-top:1rem">
+    Kunci: <strong>Fase 1 saja sudah bernilai.</strong> Bahkan tanpa AI dan dashboard, kamu sudah punya semua chat tersimpan di database yang bisa di-query SQL. Itu sendiri sudah jauh lebih baik dari "scrolling WhatsApp."
+    <span class="src">HOS v1 — "If it's not written, it didn't happen." → Fase 1 menjadikan SEMUA chat "written."</span>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- SECTION 6: HOW TO WORK WITH AI -->
+<!-- ═══════════════════════════════════════ -->
+<section>
+  <span class="tag tag-p">AI-Assisted Build</span>
+  <h2>Cara Paling Efektif: AI sebagai Pair Programmer</h2>
+  <p>Kamu bilang "yang paling sulit adalah memberi AI konteks yang tepat." Untuk project ini, konteksnya sangat terbatas dan clear — itu keuntungannya.</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <h4>📋 Context yang Perlu Kamu Berikan ke AI</h4>
+      <p style="font-size:.8rem">Setiap kali mulai session coding baru:</p>
+      <ul style="list-style:none;padding:0">
+        <li style="font-size:.78rem;padding:.2rem 0;padding-left:1rem;position:relative"><span style="position:absolute;left:0;color:var(--g)">1.</span> Schema Supabase (SQL tables)</li>
+        <li style="font-size:.78rem;padding:.2rem 0;padding-left:1rem;position:relative"><span style="position:absolute;left:0;color:var(--g)">2.</span> Module mana yang sedang dikerjakan</li>
+        <li style="font-size:.78rem;padding:.2rem 0;padding-left:1rem;position:relative"><span style="position:absolute;left:0;color:var(--g)">3.</span> File/code yang sudah ada (copy-paste existing code)</li>
+        <li style="font-size:.78rem;padding:.2rem 0;padding-left:1rem;position:relative"><span style="position:absolute;left:0;color:var(--g)">4.</span> Error message kalau ada bug</li>
+      </ul>
+      <p style="font-size:.78rem;color:var(--g)">Konteksnya sangat bounded — tidak seperti HMCS yang massive. Ini project kecil dengan scope jelas.</p>
+    </div>
+    <div class="card">
+      <h4>🎯 Prompt Strategy per Module</h4>
+      <ul style="list-style:none;padding:0">
+        <li style="font-size:.78rem;padding:.2rem 0"><span style="color:var(--bl)">M1:</span> "Build a Baileys WhatsApp listener that saves all group messages to Supabase. Here's my schema: [paste]. Use @whiskeysockets/baileys v7."</li>
+        <li style="font-size:.78rem;padding:.2rem 0"><span style="color:var(--g)">M2:</span> "Create Supabase SQL migration for a WhatsApp message tracker. Tables: messages, classified_items, tasks, directions."</li>
+        <li style="font-size:.78rem;padding:.2rem 0"><span style="color:var(--y)">M3:</span> "Write a Supabase Edge Function that classifies WA messages using Claude API. Categories: task, direction, report, noise. Extract: assignee, deadline, topic."</li>
+        <li style="font-size:.78rem;padding:.2rem 0"><span style="color:var(--p)">M4:</span> "Create a daily summary cron that queries yesterday's classified items from Supabase and sends a formatted summary via Baileys."</li>
+        <li style="font-size:.78rem;padding:.2rem 0"><span style="color:var(--o)">M5:</span> "Build a Next.js dashboard with Supabase realtime. Pages: kanban task board, direction search, group activity."</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- SECTION 7: COST & RISK -->
+<!-- ═══════════════════════════════════════ -->
+<section>
+  <span class="tag tag-r">Cost & Risk</span>
+  <h2>Biaya & Risiko yang Harus Kamu Tahu</h2>
+
+  <div class="grid-2">
+    <div class="card">
+      <h4>💰 Running Cost (Monthly)</h4>
+      <div class="bar-row"><span class="bar-label" style="width:140px">Supabase</span><div class="bar-track"><div class="bar-fill g" style="width:5%">Free</div></div></div>
+      <div class="bar-row"><span class="bar-label" style="width:140px">AI API (classify)</span><div class="bar-track"><div class="bar-fill y" style="width:25%">$5-15</div></div></div>
+      <div class="bar-row"><span class="bar-label" style="width:140px">Embeddings</span><div class="bar-track"><div class="bar-fill tl" style="width:8%">$1-3</div></div></div>
+      <div class="bar-row"><span class="bar-label" style="width:140px">VPS (optional)</span><div class="bar-track"><div class="bar-fill bl" style="width:15%">$5-10</div></div></div>
+      <div class="bar-row"><span class="bar-label" style="width:140px;font-weight:700;color:var(--t)">Total</span><div class="bar-track"><div class="bar-fill o" style="width:30%">$10-28/mo</div></div></div>
+      <p style="font-size:.72rem;margin-top:.5rem">💡 Bisa $0 jika pakai Gemini free tier + Supabase free tier + running di laptop/PC kantor.</p>
+    </div>
+    <div class="card">
+      <h4>⚠️ Risiko yang Sama untuk Semua Solusi</h4>
+      <ul style="list-style:none;padding:0">
+        <li style="font-size:.8rem;padding:.25rem 0"><span style="color:var(--r)">⬤</span> <strong>WhatsApp ban</strong> — risiko ada di SEMUA unofficial solutions (Baileys, Evolution, Fontte, Periskope). Mitigasi: nomor cadangan, read-mostly, jangan spam.</li>
+        <li style="font-size:.8rem;padding:.25rem 0"><span style="color:var(--y)">⬤</span> <strong>Baileys breaking changes</strong> — WA bisa update protokol kapan saja. Mitigasi: Baileys actively maintained, community besar.</li>
+        <li style="font-size:.8rem;padding:.25rem 0"><span style="color:var(--bl)">⬤</span> <strong>AI classification accuracy</strong> — tidak 100% akurat. Mitigasi: iterasi prompt, human review di dashboard, feedback loop.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- SECTION 8: VERDICT -->
+<!-- ═══════════════════════════════════════ -->
+<section>
+  <div class="card card-highlight" style="border-width:2px;padding:1.5rem">
+    <span class="tag tag-o">Verdict</span>
+    <h2>Jadi, Build Sendiri atau Tidak?</h2>
+    
+    <p style="color:var(--t);font-size:.95rem"><strong>Build sendiri = jawaban yang tepat untuk kamu.</strong> Karena:</p>
+    
+    <div class="grid-2" style="margin:.8rem 0">
+      <div>
+        <p style="font-size:.82rem"><span style="color:var(--g)">✓</span> Kamu sudah coding dengan AI — progress cepat</p>
+        <p style="font-size:.82rem"><span style="color:var(--g)">✓</span> Customisasi = kekuatan utamamu</p>
+        <p style="font-size:.82rem"><span style="color:var(--g)">✓</span> Project ini KECIL — 5 modul, ~2,000 LOC total</p>
+        <p style="font-size:.82rem"><span style="color:var(--g)">✓</span> Banyak repo bisa di-fork — bukan dari nol</p>
+      </div>
+      <div>
+        <p style="font-size:.82rem"><span style="color:var(--g)">✓</span> Data 100% milik HollyMart</p>
+        <p style="font-size:.82rem"><span style="color:var(--g)">✓</span> Bisa jadi fondasi / modul HMCS nanti</p>
+        <p style="font-size:.82rem"><span style="color:var(--g)">✓</span> Running cost near-zero</p>
+        <p style="font-size:.82rem"><span style="color:var(--g)">✓</span> Konteks untuk AI sangat bounded & clear</p>
+      </div>
+    </div>
+
+    <div class="quote">
+      <strong>Langkah pertama yang saya sarankan:</strong><br>
+      1. Fork <code>nizarfadlan/baileys-api</code> atau <code>jlucaso1/whatsapp-mcp-ts</code><br>
+      2. Setup Supabase free project + buat schema<br>
+      3. Connect nomor cadangan → mulai listen & store semua grup<br>
+      4. Dalam 2-3 hari, kamu sudah punya Fase 1 running — semua chat tersimpan di database<br>
+      5. Lalu... kamu punya semua waktu di dunia untuk build Fase 2 & 3 secara gradual
+      <span class="src">Jangan tunggu perfect. Mulai dari "listen & store." Sisanya menyusul.</span>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

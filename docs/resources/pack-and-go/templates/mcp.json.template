@@ -1,0 +1,55 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "YOUR_SUPABASE_ACCESS_TOKEN_HERE",
+        "--project-ref",
+        "{{SUPABASE_PROJECT_REF}}"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "YOUR_SUPABASE_ACCESS_TOKEN_HERE"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "execute_sql",
+        "apply_migration",
+        "list_tables",
+        "list_migrations",
+        "get_project_url",
+        "get_logs",
+        "search_docs"
+      ]
+    },
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "disabled": true,
+      "autoApprove": [
+        "resolve-library-id",
+        "get-library-docs"
+      ]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--isolated"
+      ],
+      "disabled": true,
+      "autoApprove": [
+        "browser_navigate",
+        "browser_click",
+        "browser_type",
+        "browser_snapshot",
+        "browser_take_screenshot"
+      ]
+    }
+  }
+}
