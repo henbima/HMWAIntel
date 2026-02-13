@@ -21,3 +21,8 @@ dist-ssr
 *.sln
 *.sw?
 .env
+.env.local
+
+# Baileys WhatsApp session credentials (sensitive - never commit)
+listener/auth_info/
+auth_info/

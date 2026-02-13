@@ -4,6 +4,7 @@ import {
   CheckSquare,
   Compass,
   MessageSquare,
+  MessageCircle,
   Users,
   Menu,
   X,
@@ -21,6 +22,7 @@ const navItems = [
   { to: '/directions', icon: Compass, label: 'Directions' },
   { to: '/briefings', icon: FileText, label: 'Briefings' },
   { to: '/groups', icon: MessageSquare, label: 'Groups' },
+  { to: '/conversations', icon: MessageCircle, label: 'DMs' },
   { to: '/contacts', icon: Users, label: 'Contacts' },
   { to: '/import', icon: Upload, label: 'Import Chat' },
 ];

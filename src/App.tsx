@@ -9,10 +9,11 @@ import BriefingsPage from './pages/BriefingsPage';
 import GroupsPage from './pages/GroupsPage';
 import ContactsPage from './pages/ContactsPage';
 import ImportPage from './pages/ImportPage';
+import ConversationsPage from './pages/ConversationsPage';
 import { Loader2 } from 'lucide-react';
 
 function AppRoutes() {
-  const { user, loading } = useAuth();
+  const { user, loading, unauthorized } = useAuth();
 
   if (loading) {
     return (
@@ -22,7 +23,7 @@ function AppRoutes() {
     );
   }
 
-  if (!user) {
+  if (!user || unauthorized) {
     return <LoginPage />;
   }
 
@@ -34,6 +35,7 @@ function AppRoutes() {
         <Route path="directions" element={<DirectionsPage />} />
         <Route path="briefings" element={<BriefingsPage />} />
         <Route path="groups" element={<GroupsPage />} />
+        <Route path="conversations" element={<ConversationsPage />} />
         <Route path="contacts" element={<ContactsPage />} />
         <Route path="import" element={<ImportPage />} />
       </Route>

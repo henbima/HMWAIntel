@@ -94,7 +94,7 @@ function createAIProvider(): AIProvider {
 interface MessageRow {
   id: string;
   wa_message_id: string;
-  wa_group_id: string;
+  wa_group_id: string | null;
   sender_jid: string;
   sender_name: string | null;
   message_text: string;
@@ -102,6 +102,8 @@ interface MessageRow {
   is_from_hendra: boolean;
   quoted_message_id: string | null;
   timestamp: string;
+  conversation_type: 'group' | 'personal';
+  wa_contact_jid: string | null;
   contacts: {
     display_name: string;
     role: string | null;
@@ -160,6 +162,37 @@ IMPORTANT:
 - Complaints or issues should be classified as "question" or "task" depending on whether action is requested.
 - Return ONLY valid JSON. No markdown, no explanation.`;
 
+const PERSONAL_SYSTEM_PROMPT = `You are an AI classifier for HollyMart Corp's WhatsApp business intelligence system. HollyMart is a retail company in Indonesia. These messages are from a PRIVATE/DIRECT conversation with Hendra (the owner). Most messages are in Bahasa Indonesia.
+
+You will receive a direct message thread between Hendra and one contact. This is a 1-on-1 private conversation, NOT a group chat. Classify this conversation into EXACTLY ONE category:
+- task: An assignment, request, or to-do for someone. Someone is being asked to do something specific.
+- direction: A policy, rule, SOP change, or directive from Hendra that the contact must follow.
+- report: A status update, progress report, sales figure, stock count, or operational data.
+- question: Someone asking for information, clarification, or seeking help.
+- coordination: Discussions about scheduling, planning, logistics, or operational coordination.
+- noise: Casual conversation, greetings, jokes, stickers-only, acknowledgments ("ok", "siap", "noted"), or non-business content.
+
+Return ONE JSON object with:
+- classification: MUST be one of: "task", "direction", "report", "question", "coordination", "noise"
+- confidence: 0.0 to 1.0 (how certain you are)
+- summary: one-line summary of the conversation in Bahasa Indonesia (max 150 chars)
+- priority: "low" | "normal" | "high" | "urgent"
+  - urgent = needs action within hours (safety, financial loss, direct order from Hendra)
+  - high = needs action today
+  - normal = standard business item
+  - low = informational, no action needed
+- topic: brief topic label in Bahasa Indonesia (max 30 chars)
+- assigned_to: person name if this is a task (null otherwise)
+- assigned_by: person name if this is a task (null otherwise)
+- deadline: raw deadline text if mentioned, e.g. "besok", "Jumat", "15 Feb" (null if none)
+
+IMPORTANT:
+- This is a PRIVATE conversation, so context is more personal and direct than group chats.
+- Messages from Hendra (Hendra:YES) that contain instructions are almost always tasks or directions.
+- Messages TO Hendra may be reports, questions, or responses to his earlier instructions.
+- If the conversation is just greetings and acknowledgments, classify as noise.
+- Return ONLY valid JSON. No markdown, no explanation.`;
+
 async function fetchUnclassifiedMessages(): Promise<MessageRow[]> {
   const cutoffTime = new Date();
   cutoffTime.setMinutes(cutoffTime.getMinutes() - CONVERSATION_TIMEOUT_MINUTES);
@@ -170,6 +203,7 @@ async function fetchUnclassifiedMessages(): Promise<MessageRow[]> {
       `
       id, wa_message_id, wa_group_id, sender_jid, sender_name,
       message_text, message_type, is_from_hendra, quoted_message_id, timestamp,
+      conversation_type, wa_contact_jid,
       contacts:contact_id(display_name, role, location, department, is_leadership),
       groups:group_id(name),
       classified_items(id)
@@ -193,6 +227,7 @@ async function fetchUnclassifiedMessages(): Promise<MessageRow[]> {
 
 interface Conversation {
   groupId: string;
+  conversationType: 'group' | 'personal';
   messages: MessageRow[];
   startTime: Date;
   endTime: Date;
@@ -200,96 +235,132 @@ interface Conversation {
 }
 
 function groupMessagesIntoConversations(messages: MessageRow[]): Conversation[] {
-  const messagesByWaId: Map<string, MessageRow> = new Map();
-  const threads: Map<string, MessageRow[]> = new Map();
-  const processedMessages = new Set<string>();
-
-  for (const msg of messages) {
-    messagesByWaId.set(msg.wa_message_id, msg);
-  }
-
-  function findThreadRoot(msg: MessageRow): MessageRow {
-    let current = msg;
-    const visited = new Set<string>();
-
-    while (current.quoted_message_id && !visited.has(current.wa_message_id)) {
-      visited.add(current.wa_message_id);
-      const parent = messagesByWaId.get(current.quoted_message_id);
-      if (!parent) break;
-      current = parent;
-    }
-
-    return current;
-  }
-
-  function collectThread(rootMsg: MessageRow): MessageRow[] {
-    const thread: MessageRow[] = [rootMsg];
-    const rootId = rootMsg.wa_message_id;
-
-    for (const msg of messages) {
-      if (msg.wa_message_id === rootId) continue;
-
-      let current: MessageRow | undefined = msg;
-      const visited = new Set<string>();
-
-      while (current && !visited.has(current.wa_message_id)) {
-        visited.add(current.wa_message_id);
-
-        if (current.quoted_message_id === rootId) {
-          thread.push(msg);
-          break;
-        }
-
-        current = current.quoted_message_id ? messagesByWaId.get(current.quoted_message_id) : undefined;
-      }
-    }
-
-    thread.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-    return thread;
-  }
-
-  for (const msg of messages) {
-    if (processedMessages.has(msg.wa_message_id)) continue;
-
-    const root = findThreadRoot(msg);
-    const threadId = root.wa_message_id;
-
-    if (!threads.has(threadId)) {
-      const threadMessages = collectThread(root);
-      threads.set(threadId, threadMessages);
-
-      for (const threadMsg of threadMessages) {
-        processedMessages.add(threadMsg.wa_message_id);
-      }
-    }
-  }
-
-  const groupedByChat: Map<string, Map<string, MessageRow[]>> = new Map();
-
-  for (const [threadId, threadMessages] of threads.entries()) {
-    const groupId = threadMessages[0].wa_group_id;
-
-    if (!groupedByChat.has(groupId)) {
-      groupedByChat.set(groupId, new Map());
-    }
-
-    groupedByChat.get(groupId)!.set(threadId, threadMessages);
-  }
+  // Separate group and personal messages
+  const groupMessages = messages.filter((m) => m.conversation_type !== 'personal');
+  const personalMessages = messages.filter((m) => m.conversation_type === 'personal');
 
   const conversations: Conversation[] = [];
 
-  for (const [groupId, groupThreads] of groupedByChat.entries()) {
-    for (const [threadId, threadMessages] of groupThreads.entries()) {
-      const sortedMessages = [...threadMessages].sort(
+  // --- Group messages: existing thread-based logic ---
+  if (groupMessages.length > 0) {
+    const messagesByWaId: Map<string, MessageRow> = new Map();
+    const threads: Map<string, MessageRow[]> = new Map();
+    const processedMessages = new Set<string>();
+
+    for (const msg of groupMessages) {
+      messagesByWaId.set(msg.wa_message_id, msg);
+    }
+
+    function findThreadRoot(msg: MessageRow): MessageRow {
+      let current = msg;
+      const visited = new Set<string>();
+
+      while (current.quoted_message_id && !visited.has(current.wa_message_id)) {
+        visited.add(current.wa_message_id);
+        const parent = messagesByWaId.get(current.quoted_message_id);
+        if (!parent) break;
+        current = parent;
+      }
+
+      return current;
+    }
+
+    function collectThread(rootMsg: MessageRow): MessageRow[] {
+      const thread: MessageRow[] = [rootMsg];
+      const rootId = rootMsg.wa_message_id;
+
+      for (const msg of groupMessages) {
+        if (msg.wa_message_id === rootId) continue;
+
+        let current: MessageRow | undefined = msg;
+        const visited = new Set<string>();
+
+        while (current && !visited.has(current.wa_message_id)) {
+          visited.add(current.wa_message_id);
+
+          if (current.quoted_message_id === rootId) {
+            thread.push(msg);
+            break;
+          }
+
+          current = current.quoted_message_id ? messagesByWaId.get(current.quoted_message_id) : undefined;
+        }
+      }
+
+      thread.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      return thread;
+    }
+
+    for (const msg of groupMessages) {
+      if (processedMessages.has(msg.wa_message_id)) continue;
+
+      const root = findThreadRoot(msg);
+      const threadId = root.wa_message_id;
+
+      if (!threads.has(threadId)) {
+        const threadMessages = collectThread(root);
+        threads.set(threadId, threadMessages);
+
+        for (const threadMsg of threadMessages) {
+          processedMessages.add(threadMsg.wa_message_id);
+        }
+      }
+    }
+
+    const groupedByChat: Map<string, Map<string, MessageRow[]>> = new Map();
+
+    for (const [threadId, threadMessages] of threads.entries()) {
+      const groupId = threadMessages[0].wa_group_id || 'unknown';
+
+      if (!groupedByChat.has(groupId)) {
+        groupedByChat.set(groupId, new Map());
+      }
+
+      groupedByChat.get(groupId)!.set(threadId, threadMessages);
+    }
+
+    for (const [groupId, groupThreads] of groupedByChat.entries()) {
+      for (const [threadId, threadMessages] of groupThreads.entries()) {
+        const sortedMessages = [...threadMessages].sort(
+          (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+
+        conversations.push({
+          groupId,
+          conversationType: 'group',
+          messages: sortedMessages,
+          startTime: new Date(sortedMessages[0].timestamp),
+          endTime: new Date(sortedMessages[sortedMessages.length - 1].timestamp),
+          threadId,
+        });
+      }
+    }
+  }
+
+  // --- Personal messages: group by wa_contact_jid ---
+  if (personalMessages.length > 0) {
+    const byContact: Map<string, MessageRow[]> = new Map();
+
+    for (const msg of personalMessages) {
+      const contactJid = msg.wa_contact_jid || 'unknown';
+      if (!byContact.has(contactJid)) {
+        byContact.set(contactJid, []);
+      }
+      byContact.get(contactJid)!.push(msg);
+    }
+
+    for (const [contactJid, contactMessages] of byContact.entries()) {
+      const sortedMessages = [...contactMessages].sort(
         (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
 
       conversations.push({
-        groupId,
+        groupId: contactJid,
+        conversationType: 'personal',
         messages: sortedMessages,
         startTime: new Date(sortedMessages[0].timestamp),
         endTime: new Date(sortedMessages[sortedMessages.length - 1].timestamp),
-        threadId,
+        threadId: `personal_${contactJid}`,
       });
     }
   }
@@ -298,7 +369,7 @@ function groupMessagesIntoConversations(messages: MessageRow[]): Conversation[] 
 }
 
 function buildConversationPrompt(conversation: Conversation): string {
-  const groupName = conversation.messages[0]?.groups?.name || conversation.groupId;
+  const isPersonal = conversation.conversationType === 'personal';
   const duration = Math.round((conversation.endTime.getTime() - conversation.startTime.getTime()) / 60000);
 
   const messageParts = conversation.messages.map((msg, i) => {
@@ -312,6 +383,22 @@ function buildConversationPrompt(conversation: Conversation): string {
     return `[${i + 1}] ${time} | ${senderName} (${role}, Lead:${isLeadership}, Hendra:${msg.is_from_hendra ? "YES" : "no"})${isReply}
 "${msg.message_text}"`;
   });
+
+  if (isPersonal) {
+    const contactName = conversation.messages[0]?.contacts?.display_name
+      || conversation.messages[0]?.sender_name
+      || conversation.groupId;
+
+    return `This is a PRIVATE/DIRECT conversation between Hendra and "${contactName}" spanning ${duration} minutes with ${conversation.messages.length} messages.
+
+This is a 1-on-1 personal chat, not a group discussion. Classify the overall conversation topic.
+
+${messageParts.join("\n\n")}
+
+Return ONE classification object for this direct conversation.`;
+  }
+
+  const groupName = conversation.messages[0]?.groups?.name || conversation.groupId;
 
   return `This is a REPLY THREAD from WhatsApp group "${groupName}" spanning ${duration} minutes with ${conversation.messages.length} messages.
 
@@ -394,7 +481,9 @@ async function createTask(
   cls: Classification,
   classifiedItemId: string
 ) {
-  const groupName = msg.groups?.name || msg.wa_group_id;
+  const groupName = msg.conversation_type === 'personal'
+    ? (msg.contacts?.display_name || msg.sender_name || msg.wa_contact_jid || 'DM')
+    : (msg.groups?.name || msg.wa_group_id);
 
   const { error } = await supabase.from("tasks").insert({
     classified_item_id: classifiedItemId,
@@ -422,7 +511,9 @@ async function createDirection(
   msg: MessageRow,
   cls: Classification
 ) {
-  const groupName = msg.groups?.name || msg.wa_group_id;
+  const groupName = msg.conversation_type === 'personal'
+    ? (msg.contacts?.display_name || msg.sender_name || msg.wa_contact_jid || 'DM')
+    : (msg.groups?.name || msg.wa_group_id);
 
   const { error } = await supabase.from("directions").insert({
     source_message_id: msg.id,
@@ -509,10 +600,11 @@ Deno.serve(async (req: Request) => {
 
     for (const conversation of conversations) {
       const prompt = buildConversationPrompt(conversation);
+      const systemPrompt = conversation.conversationType === 'personal' ? PERSONAL_SYSTEM_PROMPT : SYSTEM_PROMPT;
 
       let classification: Classification;
       try {
-        const results = await callAI(aiProvider, SYSTEM_PROMPT, prompt);
+        const results = await callAI(aiProvider, systemPrompt, prompt);
         classification = results[0];
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);

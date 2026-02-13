@@ -18,9 +18,22 @@ export async function handleMessage(msg: WAMessage) {
   const remoteJid = msg.key?.remoteJid;
   if (!remoteJid) return;
 
-  const isGroup = remoteJid.endsWith('@g.us');
-  if (!isGroup) return;
+  // Discard broadcast/status messages
+  if (remoteJid.includes('@broadcast')) return;
 
+  const isGroup = remoteJid.endsWith('@g.us');
+  const isPersonal = remoteJid.endsWith('@s.whatsapp.net');
+
+  if (!isGroup && !isPersonal) return; // Unknown JID type
+
+  if (isGroup) {
+    await handleGroupMessage(msg, remoteJid);
+  } else {
+    await handlePersonalMessage(msg, remoteJid);
+  }
+}
+
+async function handleGroupMessage(msg: WAMessage, remoteJid: string) {
   if (!isGroupKnown(remoteJid) && activeSock) {
     syncSingleGroup(activeSock, remoteJid).catch((err) => {
       logger.warn({ err, group: remoteJid }, 'Background group sync failed');
@@ -54,6 +67,8 @@ export async function handleMessage(msg: WAMessage) {
     message_type: messageType,
     is_from_hendra: isFromHendra,
     quoted_message_id: extractQuotedId(msg) || null,
+    conversation_type: 'group',
+    wa_contact_jid: null,
     timestamp: timestamp.toISOString(),
     raw_data: stripBuffers(msg) as Record<string, unknown>,
     listener_id: config.listenerId,
@@ -62,7 +77,7 @@ export async function handleMessage(msg: WAMessage) {
 
   if (error) {
     if (error.code === '23505') return;
-    logger.error({ error, msgId: msg.key?.id }, 'Failed to insert message');
+    logger.error({ error, msgId: msg.key?.id }, 'Failed to insert group message');
     return;
   }
 
@@ -74,7 +89,55 @@ export async function handleMessage(msg: WAMessage) {
       hendra: isFromHendra,
       len: text?.length || 0,
     },
-    'Message saved'
+    'Group message saved'
+  );
+}
+
+async function handlePersonalMessage(msg: WAMessage, remoteJid: string) {
+  const isFromMe = msg.key?.fromMe === true;
+  const senderJid = isFromMe ? config.hendraJid : remoteJid;
+  const isFromHendra = isFromMe || senderJid === config.hendraJid;
+
+  const text = extractText(msg);
+  const messageType = detectMessageType(msg);
+  const timestamp = normalizeTimestamp(msg.messageTimestamp);
+
+  const contactId = await resolveContact(senderJid, msg.pushName);
+
+  const { error } = await supabase.from('messages').insert({
+    wa_message_id: msg.key?.id || null,
+    group_id: null,
+    wa_group_id: null,
+    sender_jid: senderJid,
+    sender_name: msg.pushName || null,
+    contact_id: contactId,
+    message_text: text || null,
+    message_type: messageType,
+    is_from_hendra: isFromHendra,
+    quoted_message_id: extractQuotedId(msg) || null,
+    conversation_type: 'personal',
+    wa_contact_jid: remoteJid,
+    timestamp: timestamp.toISOString(),
+    raw_data: stripBuffers(msg) as Record<string, unknown>,
+    listener_id: config.listenerId,
+    last_seen_by_listener: new Date().toISOString(),
+  });
+
+  if (error) {
+    if (error.code === '23505') return;
+    logger.error({ error, msgId: msg.key?.id, contact: remoteJid }, 'Failed to insert personal message');
+    return;
+  }
+
+  logger.info(
+    {
+      contact: remoteJid,
+      sender: msg.pushName || senderJid,
+      type: messageType,
+      hendra: isFromHendra,
+      len: text?.length || 0,
+    },
+    'Personal message saved'
   );
 }
 

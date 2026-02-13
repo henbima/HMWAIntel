@@ -31,7 +31,7 @@ export interface Message {
   id: string;
   wa_message_id: string | null;
   group_id: string | null;
-  wa_group_id: string;
+  wa_group_id: string | null;
   sender_jid: string;
   sender_name: string | null;
   contact_id: string | null;
@@ -40,10 +40,16 @@ export interface Message {
   media_url: string | null;
   is_from_hendra: boolean;
   quoted_message_id: string | null;
+  source_type: string;
+  meeting_id: string | null;
+  meeting_metadata: Record<string, unknown> | null;
+  conversation_type: 'group' | 'personal';
+  wa_contact_jid: string | null;
   timestamp: string;
   raw_data: Record<string, unknown> | null;
   created_at: string;
 }
+
 
 export interface ClassifiedItem {
   id: string;
@@ -105,6 +111,22 @@ export interface DailyBriefing {
   new_directions_count: number;
   sent_at: string | null;
   sent_via: string;
+  created_at: string;
+}
+
+export interface Meeting {
+  id: string;
+  zoom_meeting_id: string | null;
+  title: string;
+  meeting_date: string;
+  duration_minutes: number | null;
+  participants: string[] | null;
+  total_chunks: number | null;
+  executive_summary: string | null;
+  raw_transcript: string | null;
+  key_decisions: Record<string, unknown>[] | null;
+  source: string;
+  metadata: Record<string, unknown> | null;
   created_at: string;
 }
 
