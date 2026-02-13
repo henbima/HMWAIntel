@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { MessageSquare, Users, ChevronRight, ArrowLeft, Search, Star, SortAsc, Activity, LayoutGrid, List, Database } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
 import { ClassificationBadge } from '../components/StatusBadge';
+import { SourceBadge } from '../components/SourceBadge';
 import { waIntel } from '../lib/supabase';
 import type { Group, Message, ClassifiedItem } from '../lib/types';
 
@@ -589,6 +590,7 @@ function MessageRow({ message }: { message: MessageWithClassification }) {
                 Owner
               </span>
             )}
+            <SourceBadge sourceType={message.source_type} />
           </div>
           <p className="text-sm text-gray-700 leading-relaxed">
             {message.message_text || `[${message.message_type}]`}

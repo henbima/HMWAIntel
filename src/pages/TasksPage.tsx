@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CheckSquare, Plus, Filter, X } from 'lucide-react';
-import { TaskStatusBadge, PriorityBadge } from '../components/StatusBadge';
+import { PriorityBadge } from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import { waIntel } from '../lib/supabase';
 import type { Task, TaskStatus } from '../lib/types';
