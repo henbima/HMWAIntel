@@ -22,11 +22,11 @@ The dashboard (Module 5) is functional but missing several blueprint features an
 
 | Metric | Value |
 |---|---|
-| `wa_intel.groups` | 299 rows |
-| `wa_intel.messages` | 19,351 rows |
-| `wa_intel.tasks` | 1 row |
-| `wa_intel.directions` | 2 rows |
-| `wa_intel.classified_items` | 30 rows |
+| `hmso.groups` | 299 rows |
+| `hmso.messages` | 19,351 rows |
+| `hmso.tasks` | 1 row |
+| `hmso.directions` | 2 rows |
+| `hmso.classified_items` | 30 rows |
 | Feature flags table | ❌ Does not exist |
 | Supabase Realtime enabled | Available (Supabase project supports it) |
 
@@ -60,7 +60,7 @@ The dashboard (Module 5) is functional but missing several blueprint features an
 
 ### AC-1: Drag & Drop Kanban
 - [ ] Task cards can be dragged between status columns
-- [ ] Dropping a card updates `wa_intel.tasks.status` in the database
+- [ ] Dropping a card updates `hmso.tasks.status` in the database
 - [ ] Visual feedback during drag (ghost card, highlighted drop zone)
 - [ ] Uses a lightweight DnD library (e.g., `@dnd-kit/core` — Tailwind-compatible, maintained)
 - [ ] Existing filter functionality (group, assignee) preserved
@@ -69,7 +69,7 @@ The dashboard (Module 5) is functional but missing several blueprint features an
 - [ ] GroupsPage shows a bar/line chart of message volume per day for selected group
 - [ ] Last 7 or 14 days of data displayed
 - [ ] Uses a lightweight chart library (e.g., `recharts` — React-native, small bundle)
-- [ ] Chart loads data from `wa_intel.messages` aggregated by date
+- [ ] Chart loads data from `hmso.messages` aggregated by date
 
 ### AC-3: Realtime Subscriptions
 - [ ] OverviewPage stats auto-update when new data arrives
@@ -79,7 +79,7 @@ The dashboard (Module 5) is functional but missing several blueprint features an
 - [ ] Graceful fallback if realtime connection drops
 
 ### AC-4: Feature Flags
-- [ ] `wa_intel.feature_flags` table created (name TEXT, enabled BOOLEAN, description TEXT)
+- [ ] `hmso.feature_flags` table created (name TEXT, enabled BOOLEAN, description TEXT)
 - [ ] `useFeatureFlags()` hook created in `src/hooks/`
 - [ ] WIP components wrapped with `{features.use('flagName') && <Component />}` pattern
 - [ ] Migration SQL saved to `supabase/migrations/`

@@ -10,9 +10,9 @@ inclusion: manual
 
 | Category | Purpose | Location |
 |----------|---------|----------|
-| Technical Guides | Step-by-step instructions | `HMWAIntel/docs/guides/` |
-| Architecture | Architecture decisions, data flows | `HMWAIntel/docs/architecture/` |
-| Reference | Quick reference, specifications | `HMWAIntel/docs/reference/` |
+| Technical Guides | Step-by-step instructions | `HMSO/docs/guides/` |
+| Architecture | Architecture decisions, data flows | `HMSO/docs/architecture/` |
+| Reference | Quick reference, specifications | `HMSO/docs/reference/` |
 | Reports | Implementation summaries | Within spec `reports/` folder |
 
 ### Step 2: Follow Naming Convention
@@ -28,10 +28,10 @@ Examples:
 
 ### Step 3: Place File in Correct Directory
 
-All documentation lives under `HMWAIntel/docs/`. Never place docs at workspace root.
+All documentation lives under `HMSO/docs/`. Never place docs at workspace root.
 
 ```
-HMWAIntel/docs/
+HMSO/docs/
 ├── architecture/          # Architecture decisions and diagrams
 ├── guides/                # How-to guides
 ├── reference/             # Quick reference docs
@@ -74,7 +74,7 @@ HMWAIntel/docs/
 - Include working code examples
 
 ### Code Examples
-- Include working examples with correct `wa_intel` schema references
+- Include working examples with correct `hmso` schema references
 - Show both correct and incorrect patterns
 - Add explanatory comments
 
@@ -89,10 +89,10 @@ HMWAIntel/docs/
 
 | Document | Purpose |
 |----------|---------|
-| `HMWAIntel/CLAUDE.md` | AI role definition (mirrors kernel.md) |
-| `HMWAIntel/SPEC_REGISTRY.md` | Single source of truth for spec statuses |
-| `HMWAIntel/docs/project-context.md` | Project background & safety rules |
-| `HMWAIntel/docs/Hendra_Core_Package/` | HollyMart context & operating philosophy |
+| `HMSO/CLAUDE.md` | AI role definition (mirrors kernel.md) |
+| `HMSO/SPEC_REGISTRY.md` | Single source of truth for spec statuses |
+| `HMSO/docs/project-context.md` | Project background & safety rules |
+| `HMSO/docs/Hendra_Core_Package/` | HollyMart context & operating philosophy |
 
 ---
 
@@ -101,7 +101,7 @@ HMWAIntel/docs/
 Implementation reports live within their spec folder:
 
 ```
-HMWAIntel/specs/{NUMBER}-{name}/
+HMSO/specs/{NUMBER}-{name}/
 └── reports/
     └── {NUMBER}-implementation-report-YYYY-MM-DD.md
 ```

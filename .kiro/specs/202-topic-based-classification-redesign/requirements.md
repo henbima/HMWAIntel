@@ -96,7 +96,7 @@ The current `classify-messages` Edge Function runs every 15 minutes and classifi
 ## Acceptance Criteria
 
 ### AC-1: Real-Time Triage (`message_flags` table)
-- [ ] New `wa_intel.message_flags` table created
+- [ ] New `hmso.message_flags` table created
 - [ ] Flags are created for: `urgent`, `hendra_instruction`, `question`, `low_stock`, `complaint`
 - [ ] Detection is keyword/heuristic-based (no AI cost)
 - [ ] Flags can be resolved (when someone responds or manually)
@@ -107,12 +107,12 @@ The current `classify-messages` Edge Function runs every 15 minutes and classifi
 - [ ] Fetches full previous day's messages per active group (00:00-23:59 WIB)
 - [ ] Sends messages to AI for topic segmentation (which messages belong together)
 - [ ] Classifies each identified topic: task/direction/report/question/coordination/noise
-- [ ] Stores results in new `wa_intel.daily_topics` table
+- [ ] Stores results in new `hmso.daily_topics` table
 - [ ] Auto-creates `tasks` and `directions` rows from classified topics
 - [ ] Handles groups with >200 messages by splitting into time windows
 
 ### AC-3: Daily Topics Table
-- [ ] New `wa_intel.daily_topics` table with: topic_label, message_ids[], classification, summary, outcome, priority, action_needed, assigned_to/by, deadline, is_ongoing, continued_from
+- [ ] New `hmso.daily_topics` table with: topic_label, message_ids[], classification, summary, outcome, priority, action_needed, assigned_to/by, deadline, is_ongoing, continued_from
 - [ ] Indexed by topic_date, classification, is_ongoing, action_needed
 - [ ] RLS enabled, proper grants
 

@@ -75,6 +75,6 @@
 ---
 
 ## Completion Checklist
-- [ ] Verify via SQL: `SELECT deadline_parsed FROM wa_intel.classified_items WHERE deadline IS NOT NULL` returns non-null values
+- [ ] Verify via SQL: `SELECT deadline_parsed FROM hmso.classified_items WHERE deadline IS NOT NULL` returns non-null values
 - [ ] Verify detect-task-completion returns valid response
 - [ ] Verify classify-messages still produces correct classifications after refactor

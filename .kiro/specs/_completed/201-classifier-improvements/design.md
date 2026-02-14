@@ -78,10 +78,10 @@ const COMPLETION_KEYWORDS = [
 ```sql
 -- Find potential completion messages for a task
 SELECT m.id, m.message_text, m.sender_name, m.timestamp
-FROM wa_intel.messages m
-JOIN wa_intel.contacts c ON c.id = m.contact_id
+FROM hmso.messages m
+JOIN hmso.contacts c ON c.id = m.contact_id
 WHERE m.wa_group_id = (
-  SELECT g.wa_group_id FROM wa_intel.groups g WHERE g.name = task.group_name
+  SELECT g.wa_group_id FROM hmso.groups g WHERE g.name = task.group_name
 )
 AND (
   c.display_name ILIKE '%' || task.assigned_to || '%'

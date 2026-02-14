@@ -14,7 +14,7 @@ last-updated: 2026-02-13
 - ALL database changes MUST be done via migration files for traceability.
 - Use `mcp_supabase_apply_migration` to apply migrations (this both saves and executes).
 - Migration files are saved in `supabase/migrations/` automatically by the MCP tool.
-- Also save a local copy in `HMWAIntel/supabase/migrations/` for git tracking.
+- Also save a local copy in `HMSO/supabase/migrations/` for git tracking.
 - Follow naming convention: `YYYYMMDDHHMMSS_descriptive_name.sql`
 
 ## Edge Functions
@@ -26,4 +26,4 @@ last-updated: 2026-02-13
 - Cron jobs are managed via `pg_cron` extension in the database.
 - Query with: `SELECT * FROM cron.job ORDER BY jobid;`
 - Create/modify via migrations using `cron.schedule()`.
-- Follow naming: `wa_intel_{descriptive-name}`
+- Follow naming: `hmso_{descriptive-name}`

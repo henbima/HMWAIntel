@@ -13,16 +13,16 @@ inclusion: manual
 
 ## Core Rules (Never Break)
 - **Service Layer Only**: All DB access through service layer — no direct `supabase.from()` in components
-- **Migrations Only**: All schema changes through migration files in `HMWAIntel/supabase/migrations/`
+- **Migrations Only**: All schema changes through migration files in `HMSO/supabase/migrations/`
 - **Schema First**: Always verify actual schema before writing queries
 - **Reuse First**: Check existing functionality before building new
-- **wa_intel Schema**: All HMSO tables live in `wa_intel` schema, NOT `public`
+- **hmso Schema**: All HMSO tables live in `hmso` schema, NOT `public`
 
 ## Critical HMSO Database Facts
 
 | Aspect | Rule |
 |--------|------|
-| **Schema** | `wa_intel` (NOT `public`) |
+| **Schema** | `hmso` (NOT `public`) |
 | **Primary Keys** | Always UUID with `gen_random_uuid()` |
 | **RLS** | Always ON — every table has Row Level Security enabled |
 | **Shared DB** | Database shared with HMCS, HMBI, HMLS, Training |
@@ -55,15 +55,15 @@ inclusion: manual
 
 ### Step 1: Discover
 ```sql
--- Check what exists in wa_intel schema
+-- Check what exists in hmso schema
 SELECT table_name FROM information_schema.tables
-WHERE table_schema = 'wa_intel'
+WHERE table_schema = 'hmso'
 ORDER BY table_name;
 
 -- Check table structure
 SELECT column_name, data_type, is_nullable, column_default
 FROM information_schema.columns
-WHERE table_name = '<TABLE>' AND table_schema = 'wa_intel'
+WHERE table_name = '<TABLE>' AND table_schema = 'hmso'
 ORDER BY ordinal_position;
 ```
 
@@ -74,7 +74,7 @@ ORDER BY ordinal_position;
 
 ### Step 3: Write Migration
 - Follow naming: `YYYYMMDDHHMMSS_descriptive_name.sql`
-- Save to `HMWAIntel/supabase/migrations/`
+- Save to `HMSO/supabase/migrations/`
 - Include all required elements (see below)
 
 ### Step 4: Apply
@@ -97,7 +97,7 @@ ORDER BY ordinal_position;
 -- Description: [What this migration does and why]
 
 -- Use IF NOT EXISTS for idempotent operations
-CREATE TABLE IF NOT EXISTS wa_intel.new_table (
+CREATE TABLE IF NOT EXISTS hmso.new_table (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   -- columns here
   created_at TIMESTAMPTZ DEFAULT now(),
@@ -105,21 +105,21 @@ CREATE TABLE IF NOT EXISTS wa_intel.new_table (
 );
 
 -- Enable RLS
-ALTER TABLE wa_intel.new_table ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hmso.new_table ENABLE ROW LEVEL SECURITY;
 
 -- Policies
 CREATE POLICY "policy_name"
-  ON wa_intel.new_table FOR SELECT
+  ON hmso.new_table FOR SELECT
   USING (auth.uid() IS NOT NULL);
 
 -- Grants
-GRANT SELECT, INSERT, UPDATE ON wa_intel.new_table TO authenticated;
-GRANT SELECT ON wa_intel.new_table TO anon;
-GRANT ALL ON wa_intel.new_table TO service_role;
+GRANT SELECT, INSERT, UPDATE ON hmso.new_table TO authenticated;
+GRANT SELECT ON hmso.new_table TO anon;
+GRANT ALL ON hmso.new_table TO service_role;
 
 -- Register in object registry
 INSERT INTO hm_core.object_registry (object_type, object_name, object_schema, owner_app, description)
-VALUES ('table', 'new_table', 'wa_intel', 'wa_intel', 'Description of table purpose');
+VALUES ('table', 'new_table', 'hmso', 'hmso', 'Description of table purpose');
 ```
 
 ### NO DOLLAR-QUOTING (MCP Compatibility)
@@ -131,7 +131,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- CORRECT:
-CREATE FUNCTION wa_intel__my_func() RETURNS void AS '
+CREATE FUNCTION hmso__my_func() RETURNS void AS '
 BEGIN -- code
 END;
 ' LANGUAGE plpgsql;
@@ -143,14 +143,14 @@ END;
 
 ### Correct Pattern
 ```typescript
-// Access wa_intel schema
-const { data } = await supabase.schema('wa_intel').from('tasks').select('*')
+// Access hmso schema
+const { data } = await supabase.schema('hmso').from('tasks').select('*')
 
 // Service function
 export const taskService = {
   async getTasks() {
     const { data, error } = await supabase
-      .schema('wa_intel')
+      .schema('hmso')
       .from('tasks')
       .select('*')
     return { data: data || [], error }
@@ -162,7 +162,7 @@ export const taskService = {
 ```typescript
 // NEVER do this in components
 const MyComponent = () => {
-  const { data } = supabase.schema('wa_intel').from('tasks').select() // NO!
+  const { data } = supabase.schema('hmso').from('tasks').select() // NO!
 }
 ```
 
@@ -179,4 +179,4 @@ Before approving any database change:
 - [ ] No dollar-quoting (MCP compatibility)
 - [ ] No destructive operations without explicit approval
 - [ ] Object registered in `hm_core.object_registry`
-- [ ] Boundary check passed (ownership = `wa_intel`)
+- [ ] Boundary check passed (ownership = `hmso`)

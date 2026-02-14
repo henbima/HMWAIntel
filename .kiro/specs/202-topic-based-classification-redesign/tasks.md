@@ -1,6 +1,6 @@
 # Spec 202: Topic-Based Classification Redesign — Tasks
 
-**Status:** Planned  
+**Status:** In Progress (awaiting first live cron run)  
 **Priority:** P0  
 **Estimated effort:** 8-12 days across 5 phases
 
@@ -19,7 +19,7 @@
 
 **Commit:** `fix(cron): disable broken classify-messages and daily-briefing cron jobs`
 
-#### - [x] Task A.2: Create `wa_intel.message_flags` table
+#### - [x] Task A.2: Create `hmso.message_flags` table
 **File:** `supabase/migrations/20260211_create_message_flags.sql`
 
 **Acceptance Criteria:**
@@ -30,7 +30,7 @@
 
 **Commit:** `feat(db): create message_flags table for real-time triage`
 
-#### - [x] Task A.3: Create `wa_intel.daily_topics` table
+#### - [x] Task A.3: Create `hmso.daily_topics` table
 **File:** `supabase/migrations/20260211_create_daily_topics.sql`
 
 **Acceptance Criteria:**
@@ -42,7 +42,7 @@
 
 **Commit:** `feat(db): create daily_topics table for topic-based classification`
 
-#### - [x] Task A.4: Alter `wa_intel.daily_briefings` — add new columns
+#### - [x] Task A.4: Alter `hmso.daily_briefings` — add new columns
 **File:** `supabase/migrations/20260211_alter_daily_briefings.sql`
 
 **Acceptance Criteria:**
@@ -60,9 +60,9 @@
 **File:** `supabase/migrations/20260211_create_triage_trigger.sql`
 
 **Acceptance Criteria:**
-- [ ] PL/pgSQL function `wa_intel.triage_message()` created
+- [ ] PL/pgSQL function `hmso.triage_message()` created
 - [ ] Detects flag types: urgent, hendra_instruction, question, low_stock, complaint
-- [ ] Fires as AFTER INSERT trigger on `wa_intel.messages`
+- [ ] Fires as AFTER INSERT trigger on `hmso.messages`
 - [ ] Handles NULL/empty message_text gracefully (returns NEW without flagging)
 - [ ] Keyword detection uses Bahasa Indonesia terms
 - [ ] Hendra instruction: `is_from_hendra = true` AND `length(message_text) > 50`
@@ -94,7 +94,7 @@
 **Acceptance Criteria:**
 - [ ] Edge Function created with Deno.serve entry point
 - [ ] CORS headers configured
-- [ ] Supabase client initialized with service_role_key, schema wa_intel
+- [ ] Supabase client initialized with service_role_key, schema hmso
 - [ ] AI provider abstraction reused from classify-messages (OpenAI GPT-4o-mini)
 - [ ] Date utility: `getYesterdayWIB()` returns previous day 00:00-23:59 WIB in UTC
 - [ ] Returns JSON: `{ date, groups_analyzed, topics_found, tasks_created, directions_created, errors }`
@@ -142,10 +142,10 @@
 **File:** `supabase/functions/analyze-daily/index.ts`
 
 **Acceptance Criteria:**
-- [ ] Each classified topic saved to `wa_intel.daily_topics` with all fields
+- [ ] Each classified topic saved to `hmso.daily_topics` with all fields
 - [ ] `message_ids` populated with actual UUIDs (resolved from message_indices)
-- [ ] Topics with `classification = 'task'` auto-create row in `wa_intel.tasks`
-- [ ] Topics with `classification = 'direction'` auto-create row in `wa_intel.directions`
+- [ ] Topics with `classification = 'task'` auto-create row in `hmso.tasks`
+- [ ] Topics with `classification = 'direction'` auto-create row in `hmso.directions`
 - [ ] Duplicate prevention: skip if daily_topics already exists for same group+date
 - [ ] `raw_ai_response` stored for debugging
 
@@ -230,12 +230,19 @@
 #### - [ ] Task E.3: Monitor first live run (awaiting next scheduled run)
 **File:** N/A (monitoring)
 
+**Notes (2026-02-13):**
+- Cron jobs renamed from `hmbi_*` to `hmso_*` (previous AI session incorrectly registered them)
+- `hmso_analyze-daily` schedule: `*/10 18-19 * * *` (every 10 min, 01:00-02:59 WIB) for batch processing
+- `hmso_daily-briefing` schedule: `0 22 * * *` (05:00 WIB)
+- New cron jobs created as jobid 20, 21 — first run expected tonight (Feb 13, 18:00 UTC)
+- Feb 12 WIB only had 3 messages (listener was likely down), so first meaningful run will be Feb 14 analyzing Feb 13 data
+
 **Acceptance Criteria:**
-- [ ] analyze-daily runs at 6 AM WIB without errors
+- [ ] analyze-daily runs at 01:00 WIB without errors (batch schedule: every 10 min until 02:59 WIB)
 - [ ] daily_topics populated for previous day
-- [ ] daily-briefing runs at 7 AM WIB using topic data
+- [ ] daily-briefing runs at 05:00 WIB using topic data
 - [ ] Briefing text is coherent and topic-based
-- [ ] No cron failures in `SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 10;`
+- [ ] No cron failures in `SELECT * FROM cron.job_run_details WHERE jobid IN (20,21) ORDER BY start_time DESC LIMIT 10;`
 
 **Commit:** N/A (monitoring)
 
@@ -243,15 +250,41 @@
 
 ## Completion Checklist
 
-- [ ] All broken crons disabled — `SELECT * FROM cron.job;` shows only analyze-daily + daily-briefing
-- [ ] `wa_intel.message_flags` table exists and trigger fires on message insert
-- [ ] `wa_intel.daily_topics` table exists with proper indexes and RLS
-- [ ] `analyze-daily` Edge Function deployed and produces correct topic segmentation
-- [ ] `daily-briefing` Edge Function updated to use topic-based format
-- [ ] Both new cron jobs running successfully
+- [x] All broken crons disabled — old jobs 9, 10 removed; jobs 18, 19 (hmbi_*) unscheduled and replaced with 20, 21 (hmso_*)
+- [x] `hmso.message_flags` table exists and trigger fires on message insert
+- [x] `hmso.daily_topics` table exists with proper indexes and RLS
+- [x] `analyze-daily` Edge Function deployed (v5) and produces correct topic segmentation
+- [x] `daily-briefing` Edge Function updated to use topic-based format
+- [x] Both new cron jobs created: `hmso_analyze-daily` (jobid 20), `hmso_daily-briefing` (jobid 21)
+- [ ] First live cron run succeeds (awaiting tonight Feb 13 18:00 UTC)
 - [ ] First live daily briefing uses topic-based format
-- [ ] Run `npm run typecheck` (0 errors)
-- [ ] Run `npm run build` (successful)
+- [x] Run `npm run typecheck` (0 errors) — verified 2026-02-13
+- [x] Run `npm run build` (successful) — verified 2026-02-13
+
+## Post-Implementation Fixes (2026-02-13)
+
+### Fix 1: analyze-daily returned 0 topics
+- Root cause: `getActiveGroupsFallback()` used `group_id` FK join, but 5,410 messages had `group_id = NULL`
+- Fix: Rewrote to use `wa_group_id` (raw WhatsApp JID) instead of `group_id` UUID FK
+- Backfilled all NULL `group_id` values (23,943 group messages now have `group_id`)
+- Tested with Feb 11 data: 42 topics across 12 groups
+
+### Fix 2: Batch processing for timeout prevention
+- Added `BATCH_SIZE = 5` — processes max 5 groups per invocation
+- Cron schedule changed to `*/10 18-19 * * *` (every 10 min, 01:00-02:59 WIB)
+- Multiple invocations cover all groups; duplicate prevention skips already-analyzed groups
+
+### Fix 3: Cron job naming and registry
+- Old cron jobs `hmbi_analyze-daily` and `hmbi_daily-briefing` were incorrectly registered by previous AI session
+- Unscheduled old jobs, created new ones with `hmso_*` prefix
+- Fixed `hm_core.object_registry` entries: owner_app → `hmso`, correct descriptions
+- Migration: `20260213141510_fix_cron_job_naming_and_batch_schedule.sql`
+
+### Known Issue: Listener group_id bug
+- Listener code in `message-handler.ts` looks correct (queries groups table by wa_group_id)
+- But `group_id` stopped being populated around Feb 7-8 for unknown reasons
+- Backfill fixed existing data; analyze-daily now uses `wa_group_id` so it's resilient
+- Root cause investigation deferred (separate issue)
 
 ---
 

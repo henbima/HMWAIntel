@@ -33,9 +33,9 @@ If we ever need to write, always back up first.
 
 **HMSO — HollyMart Signal Operations**: a source-agnostic organizational intelligence system that captures signals from WhatsApp, meeting transcripts, and future channels.
 
-- **Database Schema:** `wa_intel` (legacy name, may migrate to `hmso` later)
-- **Allowed schemas:** `wa_intel` (full read/write), `hm_core` (read-only unless shared)
-- **Other app schemas (NEVER modify):** `public`, `hmbi`, `hmcs`, `training`, etc.
+- **Database Schema:** `hmso` (renamed from legacy `wa_intel`)
+- **Allowed schemas:** `hmso` (full read/write), `hm_core` (read-only unless shared)
+- **Other app schemas (NEVER modify):** `public`, `hmbi`, `hmcs`, `training`, `wa_intel` (legacy), etc.
 
 ### How HMSO Fits the HM Ecosystem
 
@@ -59,15 +59,16 @@ Hendra, the owner/operator of HollyMart — a retail grocery chain in Nusa Tengg
 
 ## Project Structure
 ```
-.kiro/
-├── specs/                  # Feature specifications (Kiro native location)
+.kiro/                      # Kiro configuration (workspace root)
+├── specs/                  # Feature specifications
 │   ├── _completed/         # Finished specs
 │   ├── _pending/           # On hold / blocked specs
 │   └── _templates/         # Spec templates
-├── steering/               # Steering files
-└── settings/               # Kiro settings
+├── steering/               # Steering files (kernel, governance, etc.)
+├── hooks/                  # Agent hooks
+└── settings/               # Kiro settings (MCP config, etc.)
 
-HMWAIntel/
+HMSO/
 ├── src/                    # Frontend (React + TypeScript)
 │   ├── components/         # Reusable UI components
 │   ├── hooks/              # Custom hooks
@@ -82,7 +83,7 @@ HMWAIntel/
 └── CLAUDE.md               # AI role definition
 ```
 
-**Code and app files live under `HMWAIntel/`. Specs and steering live under `.kiro/`.**
+**All Kiro configuration lives in `.kiro/` at workspace root. Application code lives under `HMSO/`.**
 
 ---
 
@@ -111,7 +112,7 @@ HMWAIntel/
 ## Database Governance (Critical)
 
 ### Core Rules
-- All tables live in the **`wa_intel`** schema (NOT `public`)
+- All tables live in the **`hmso`** schema (NOT `public`)
 - Verify schema via Supabase MCP before writing queries
 - RLS is enabled on all tables; never bypass
 - Use UUID primary keys and follow existing FK patterns
@@ -122,8 +123,8 @@ HMWAIntel/
 
 ### Supabase Access Pattern
 ```typescript
-// Access wa_intel schema tables
-const { data } = await supabase.schema('wa_intel').from('tasks').select('*')
+// Access hmso schema tables
+const { data } = await supabase.schema('hmso').from('tasks').select('*')
 ```
 
 ---
@@ -156,7 +157,7 @@ Domain ranges:
 - `requirements.md`, `design.md`, `tasks.md`
 
 ### Before creating a spec:
-1. Check `HMWAIntel/SPEC_REGISTRY.md` for next available number
+1. Check `HMSO/SPEC_REGISTRY.md` for next available number
 2. Reserve the number in the registry
 3. Create the folder as `.kiro/specs/{NUMBER}-{spec-name-kebab-case}/` — the number is part of the name from creation
 4. Follow templates in `.kiro/specs/_templates/`
@@ -215,3 +216,4 @@ Domain ranges:
 - Code quality & defensive programming → `#code-quality-complete.md`
 - TypeScript testing → `#typescript-testing-complete.md`
 - Supabase migration format → `#supabase-migration-standards.md`
+- Listener deployment & server operations → `#listener-deployment-guide.md`

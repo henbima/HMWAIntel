@@ -13,7 +13,7 @@
 **Acceptance Criteria:**
 - [x] 6 missing indexes created with `IF NOT EXISTS`
 - [x] `public.sync_requests` dropped
-- [x] `wa_intel.sync_requests` created with identical schema
+- [x] `hmso.sync_requests` created with identical schema
 - [x] RLS enabled + 3 policies recreated
 - [x] Grants for `authenticated` and `service_role`
 
@@ -25,7 +25,7 @@
 **Acceptance Criteria:**
 - [x] Migration applied successfully
 - [x] All 6 indexes visible in `pg_indexes`
-- [x] `wa_intel.sync_requests` exists with RLS enabled
+- [x] `hmso.sync_requests` exists with RLS enabled
 - [x] `public.sync_requests` no longer exists
 
 #### - [x] Task 1.3: Verify dashboard sync_requests code path
@@ -41,4 +41,4 @@
 ## Completion Checklist
 - [x] Verify via SQL: `SELECT indexname FROM pg_indexes WHERE schemaname = 'wa_intel'` — all 6 new indexes confirmed
 - [x] Verify via SQL: `SELECT schemaname FROM pg_tables WHERE tablename = 'sync_requests'` — returns `wa_intel` only
-- [x] Verify via SQL: RLS policies — 3 policies (SELECT/INSERT/UPDATE) confirmed on `wa_intel.sync_requests`
+- [x] Verify via SQL: RLS policies — 3 policies (SELECT/INSERT/UPDATE) confirmed on `hmso.sync_requests`

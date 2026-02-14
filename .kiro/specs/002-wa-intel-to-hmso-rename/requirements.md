@@ -1,24 +1,24 @@
-# Spec 002: wa_intel → hmso Complete Rename — Requirements
+# Spec 002: hmso → hmso Complete Rename — Requirements
 
 ## Overview
 
-Complete the partial rebrand from `wa_intel`/`HMWAIntel` to `hmso`/`HMSO` across the entire codebase — database schema, backend code, frontend code, configuration, and documentation. The project was partially rebranded but ~600+ references across 115 files still use the old naming.
+Complete the partial rebrand from `hmso`/`HMSO` to `hmso`/`HMSO` across the entire codebase — database schema, backend code, frontend code, configuration, and documentation. The project was partially rebranded but ~600+ references across 115 files still use the old naming.
 
 ## Why
 
 - **Clarity:** AI coders and future developers are confused by mixed naming
-- **Multi-app safety:** The shared Supabase DB has other HM apps; `wa_intel` name implies WhatsApp-only, but HMSO now handles meetings and future channels
-- **Consistency:** Documentation says HMSO, but code still says wa_intel
+- **Multi-app safety:** The shared Supabase DB has other HM apps; `hmso` name implies WhatsApp-only, but HMSO now handles meetings and future channels
+- **Consistency:** Documentation says HMSO, but code still says hmso
 
 ## User Stories
 
 ### US-1: Database Schema Rename
-**As** a developer, **I want** the database schema renamed from `wa_intel` to `hmso` **so that** all code consistently references one schema name.
+**As** a developer, **I want** the database schema renamed from `hmso` to `hmso` **so that** all code consistently references one schema name.
 
 **Acceptance Criteria:**
 - Schema `hmso` exists and all tables/functions/views are accessible
-- All functions and views have updated internal references (no `wa_intel.table` in bodies)
-- Cron jobs renamed from `wa_intel_*` to `hmso_*`
+- All functions and views have updated internal references (no `hmso.table` in bodies)
+- Cron jobs renamed from `hmso_*` to `hmso_*`
 - `hm_core.object_registry` updated to `owner_app = 'hmso'`
 - PostgREST config updated to expose `hmso` schema
 
@@ -46,7 +46,7 @@ Complete the partial rebrand from `wa_intel`/`HMWAIntel` to `hmso`/`HMSO` across
 
 **Acceptance Criteria:**
 - `package.json` name updated to `hmso-dashboard`
-- `wa_intel_setup.sql` renamed to `hmso_setup.sql` with internal refs updated
+- `hmso_setup.sql` renamed to `hmso_setup.sql` with internal refs updated
 - All `.kiro/steering/`, `.kiro/prompts/`, `.claude/commands/`, `.kiro/specs/` files updated
 - `README.md`, `CLAUDE.md`, `SPEC_REGISTRY.md`, `TECHNICAL_DEBT_REGISTRY.md` updated
 - `wa_jid`, `wa_group_id`, `wa_message_id`, `wa_contact_jid`, `wa_role` columns preserved (they describe WA-specific data)

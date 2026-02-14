@@ -13,7 +13,7 @@ INPUT SOURCES (Capture)
 └── Future Channels (email, HMCS notes) ──→ source_type='*'
         │
         ▼
-DATA LAYER — wa_intel schema
+DATA LAYER — hmso schema
 ├── messages (+ source_type, meeting_id, meeting_metadata)
 ├── meetings table (NEW)
 ├── Full-Text Search (tsvector index, NEW)
@@ -37,10 +37,10 @@ Key principle: existing WhatsApp data and functionality is untouched. New column
 
 ## Database Changes
 
-### New Table: `wa_intel.meetings`
+### New Table: `hmso.meetings`
 
 ```sql
-CREATE TABLE IF NOT EXISTS wa_intel.meetings (
+CREATE TABLE IF NOT EXISTS hmso.meetings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     zoom_meeting_id TEXT,
     title TEXT NOT NULL,
@@ -57,12 +57,12 @@ CREATE TABLE IF NOT EXISTS wa_intel.meetings (
 );
 ```
 
-### Modified Table: `wa_intel.messages` — 3 new columns
+### Modified Table: `hmso.messages` — 3 new columns
 
 | Column | Type | Default | Description |
 |--------|------|---------|-------------|
 | source_type | TEXT NOT NULL | 'whatsapp' | Origin: 'whatsapp', 'meeting', future types |
-| meeting_id | UUID | NULL | FK to wa_intel.meetings(id) |
+| meeting_id | UUID | NULL | FK to hmso.meetings(id) |
 | meeting_metadata | JSONB | NULL | Chunk info: index, total, time range, speakers |
 
 ### New Indexes
@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS wa_intel.meetings (
 | idx_meetings_zoom_id | meetings | zoom_meeting_id (WHERE NOT NULL) | btree partial |
 | idx_messages_search | messages | search_vector | GIN |
 
-### New Function: `wa_intel.wa_intel__search_messages(query text, limit_count int)`
+### New Function: `hmso.hmso__search_messages(query text, limit_count int)`
 
 - Returns: TABLE(id, message_text, sender_name, group_name, timestamp, relevance)
 - Uses `websearch_to_tsquery('indonesian', query)` for Indonesian language
@@ -86,13 +86,13 @@ CREATE TABLE IF NOT EXISTS wa_intel.meetings (
 
 | object_type | object_name | object_schema | owner_app |
 |-------------|-------------|---------------|-----------|
-| table | meetings | wa_intel | wa_intel |
-| function | wa_intel__search_messages | wa_intel | wa_intel |
-| index | idx_messages_source_type | wa_intel | wa_intel |
-| index | idx_messages_meeting_id | wa_intel | wa_intel |
-| index | idx_meetings_date | wa_intel | wa_intel |
-| index | idx_meetings_zoom_id | wa_intel | wa_intel |
-| index | idx_messages_search | wa_intel | wa_intel |
+| table | meetings | hmso | hmso |
+| function | hmso__search_messages | hmso | hmso |
+| index | idx_messages_source_type | hmso | hmso |
+| index | idx_messages_meeting_id | hmso | hmso |
+| index | idx_meetings_date | hmso | hmso |
+| index | idx_meetings_zoom_id | hmso | hmso |
+| index | idx_messages_search | hmso | hmso |
 
 ## Spec Evaluation Summary
 

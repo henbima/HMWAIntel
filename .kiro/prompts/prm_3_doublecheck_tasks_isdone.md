@@ -36,8 +36,8 @@ For each task in the tasks file, verify:
 - [ ] Design compliance: Implementation matches design specifications
 - [ ] No placeholders: No TODO comments, dummy data, or incomplete logic
 - [ ] Follows standards: Code adheres to kernel.md standards
-- [ ] wa_intel schema: All DB queries use `wa_intel` schema
-- [ ] Boundary safe: No modifications to objects not owned by `wa_intel`
+- [ ] hmso schema: All DB queries use `hmso` schema
+- [ ] Boundary safe: No modifications to objects not owned by `hmso`
 
 **Verification Method:**
 1. Identify which files should exist for this task
@@ -107,7 +107,7 @@ Create: `HMWAIntel/specs/{NUMBER}-{spec-name}/reports/{NUMBER}-implementation-re
 - [ ] `npm run typecheck` — {Pass/Fail}
 - [ ] `npm run build` — {Pass/Fail}
 - [ ] `npm run lint` — {Pass/Fail}
-- [ ] wa_intel schema used correctly
+- [ ] hmso schema used correctly
 - [ ] No boundary violations
 
 ---
@@ -141,7 +141,7 @@ Create: `HMWAIntel/specs/{NUMBER}-{spec-name}/reports/{NUMBER}-implementation-re
 - ✅ Includes error handling
 - ✅ Has no placeholders or TODOs
 - ✅ Follows project standards (kernel.md)
-- ✅ Uses `wa_intel` schema correctly
+- ✅ Uses `hmso` schema correctly
 
 ### What "Incomplete" Looks Like:
 - ❌ Code missing or commented out

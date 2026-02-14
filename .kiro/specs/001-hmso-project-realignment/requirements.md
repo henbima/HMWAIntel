@@ -9,7 +9,7 @@
 
 ## Overview
 
-Realign the HMWAIntel project to the new HMSO (HollyMart Signal Operations) north star blueprint. This spec covers: evaluating and cleaning up existing specs, updating project identity and context files, database schema migrations for multi-source support (WhatsApp + meetings + future channels), classification pipeline preparation, dashboard source-type awareness, file structure alignment, and blueprint integration. The goal is to transform the project foundation from WhatsApp-specific to source-agnostic while preserving all existing operational functionality.
+Realign the HMSO project to the new HMSO (HollyMart Signal Operations) north star blueprint. This spec covers: evaluating and cleaning up existing specs, updating project identity and context files, database schema migrations for multi-source support (WhatsApp + meetings + future channels), classification pipeline preparation, dashboard source-type awareness, file structure alignment, and blueprint integration. The goal is to transform the project foundation from WhatsApp-specific to source-agnostic while preserving all existing operational functionality.
 
 ## User Stories
 
@@ -31,12 +31,12 @@ Realign the HMWAIntel project to the new HMSO (HollyMart Signal Operations) nort
 ### 2. Project Identity Updates
 - Update CLAUDE.md: project name → HMSO, role → source-agnostic signal operations, add multi-source architecture, two-tier AI strategy, blueprint reference
 - Update project-context.md: one-liner, tech stack (add n8n, OpenRouter, tsvector), ecosystem positioning
-- Update steering files: main-project-context.md and database-boundary-governance.md descriptions (keep wa_intel as app identity)
+- Update steering files: main-project-context.md and database-boundary-governance.md descriptions (keep hmso as app identity)
 - Preserve ALL existing safety rules, boundary governance, and code conventions unchanged
 
 ### 3. Database Migrations
-- Create `wa_intel.meetings` table per blueprint Section 5
-- Add `source_type`, `meeting_id`, `meeting_metadata` columns to `wa_intel.messages`
+- Create `hmso.meetings` table per blueprint Section 5
+- Add `source_type`, `meeting_id`, `meeting_metadata` columns to `hmso.messages`
 - Add full-text search (tsvector + GIN index + search function)
 - Register all new objects in `hm_core.object_registry`
 - All migrations: idempotent, no dollar-quoting, comment headers, RLS, grants
@@ -60,8 +60,8 @@ Realign the HMWAIntel project to the new HMSO (HollyMart Signal Operations) nort
 
 ## Data Source
 
-- `wa_intel.messages` (modified — add 3 columns)
-- `wa_intel.meetings` (new table)
+- `hmso.messages` (modified — add 3 columns)
+- `hmso.meetings` (new table)
 - `hm_core.object_registry` (register new objects)
 
 ## Acceptance Criteria
@@ -70,7 +70,7 @@ Realign the HMWAIntel project to the new HMSO (HollyMart Signal Operations) nort
 - [ ] CLAUDE.md reflects HMSO identity with multi-source architecture
 - [ ] project-context.md reflects HMSO identity with ecosystem positioning
 - [ ] Steering files updated where needed, safety rules preserved
-- [ ] `wa_intel.meetings` table created with RLS and grants
+- [ ] `hmso.meetings` table created with RLS and grants
 - [ ] `source_type`, `meeting_id`, `meeting_metadata` columns added to messages
 - [ ] Full-text search index and function created
 - [ ] All new DB objects registered in `hm_core.object_registry`

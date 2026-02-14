@@ -8,7 +8,7 @@
 
 ## Problem Statement
 
-The blueprint (`WA_INTEL_BLUEPRINT.md` Section 5) specifies critical database indexes that are missing from the live Supabase database. Additionally, the `sync_requests` table was created in the `public` schema, violating the blueprint's rule that all wa-intel tables must reside in `wa_intel` schema.
+The blueprint (`HMSO_BLUEPRINT.md` Section 5) specifies critical database indexes that are missing from the live Supabase database. Additionally, the `sync_requests` table was created in the `public` schema, violating the blueprint's rule that all hmso tables must reside in `hmso` schema.
 
 ### Verified Data (Supabase MCP, 2026-02-08)
 
@@ -23,10 +23,10 @@ The blueprint (`WA_INTEL_BLUEPRINT.md` Section 5) specifies critical database in
 | `idx_directions_topic` | directions | `topic` | Filter directions by topic |
 
 **`sync_requests` table:**
-- Currently in `public` schema (should be `wa_intel`)
+- Currently in `public` schema (should be `hmso`)
 - 0 rows, 7 columns: `id`, `requested_at`, `status`, `started_at`, `completed_at`, `groups_synced`, `error`
 - 3 RLS policies exist (INSERT/SELECT/UPDATE for `authenticated`)
-- Referenced by `listener/src/index.ts` via the `wa_intel`-scoped Supabase client
+- Referenced by `listener/src/index.ts` via the `hmso`-scoped Supabase client
 
 ---
 
@@ -39,17 +39,17 @@ The blueprint (`WA_INTEL_BLUEPRINT.md` Section 5) specifies critical database in
 
 ### US-2: Schema Consolidation
 **As** a developer,
-**I want** the `sync_requests` table in the `wa_intel` schema,
-**So that** all wa-intel tables are consolidated and the blueprint's schema isolation rule is respected.
+**I want** the `sync_requests` table in the `hmso` schema,
+**So that** all hmso tables are consolidated and the blueprint's schema isolation rule is respected.
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] All 6 missing indexes are created in `wa_intel` schema
-- [ ] `sync_requests` table is moved from `public` to `wa_intel` schema
+- [ ] All 6 missing indexes are created in `hmso` schema
+- [ ] `sync_requests` table is moved from `public` to `hmso` schema
 - [ ] Existing RLS policies on `sync_requests` are recreated in the new schema
-- [ ] Listener code continues to work (uses `wa_intel`-scoped client, which will now find `sync_requests`)
+- [ ] Listener code continues to work (uses `hmso`-scoped client, which will now find `sync_requests`)
 - [ ] Dashboard group refresh (which inserts into `sync_requests`) continues to work
 - [ ] Migration SQL file saved to `supabase/migrations/`
 - [ ] No downtime or data loss during migration (table is currently empty)

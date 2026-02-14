@@ -35,7 +35,7 @@ Cron → Edge Function → generates briefing → calls listener HTTP endpoint �
 ### New File: `listener/src/briefing-sender.ts`
 
 ```typescript
-// Polls wa_intel.daily_briefings for unsent briefings
+// Polls hmso.daily_briefings for unsent briefings
 // Sends via Baileys socket to BRIEFING_RECIPIENT_JID
 // Updates sent_via='whatsapp', sent_at=now()
 

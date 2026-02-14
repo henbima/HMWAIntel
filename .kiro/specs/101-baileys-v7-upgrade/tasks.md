@@ -62,7 +62,7 @@
 - [ ] Listener starts without errors
 - [ ] QR code scan works (if auth state incompatible) OR existing auth state loads
 - [ ] Connection established to WhatsApp
-- [ ] Messages received and saved to `wa_intel.messages`
+- [ ] Messages received and saved to `hmso.messages`
 - [ ] Group sync works (`groupFetchAllParticipating`, `groupMetadata`)
 - [ ] Reconnection works after simulated disconnect
 
@@ -73,5 +73,5 @@
 ## Completion Checklist
 - [ ] `npm run build` passes (0 errors)
 - [ ] Listener connects and receives messages
-- [ ] Verify via SQL: new messages appearing in `wa_intel.messages` after upgrade
+- [ ] Verify via SQL: new messages appearing in `hmso.messages` after upgrade
 - [ ] PM2 restart works correctly

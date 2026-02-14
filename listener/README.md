@@ -1,12 +1,12 @@
-# WA Intel Listener (Module 1)
+# HMSO Listener (Module 1)
 
-WhatsApp message listener for HollyMart WA Intelligence. Connects to WhatsApp via a backup number, captures all group messages, and stores them in Supabase.
+WhatsApp message listener for HollyMart Signal Operations. Connects to WhatsApp via a backup number, captures all group messages, and stores them in Supabase.
 
 ## Prerequisites
 
 - Node.js 18+
 - A dedicated/backup WhatsApp number (NOT the primary business number)
-- Supabase project with `wa_intel` schema already set up
+- Supabase project with `hmso` schema already set up
 - PM2 (for production): `npm install -g pm2`
 
 ## Setup
@@ -96,7 +96,7 @@ pm2 start ecosystem.config.cjs
 pm2 status
 
 # View logs
-pm2 logs wa-intel-listener
+pm2 logs hmso-listener
 
 # Auto-start on system boot
 pm2 startup
@@ -115,9 +115,9 @@ npm run dev
 - On startup: syncs all group metadata and member lists to the database
 - Listens for every new message in every group
 - For each message:
-  - Looks up the sender in `wa_intel.contacts` (auto-creates if new)
+  - Looks up the sender in `hmso.contacts` (auto-creates if new)
   - Flags messages from Hendra (`is_from_hendra`)
-  - Saves to `wa_intel.messages` with full metadata
+  - Saves to `hmso.messages` with full metadata
 - Listens for group participant changes (join/leave/promote/demote)
 - Auto-reconnects on disconnection with exponential backoff
 - Read-only — never sends messages or replies
@@ -129,7 +129,7 @@ listener/
 ├── src/
 │   ├── index.ts              # Main entry — Baileys setup, event listeners
 │   ├── config.ts             # Environment variable loading
-│   ├── supabase.ts           # Supabase client (wa_intel schema)
+│   ├── supabase.ts           # Supabase client (hmso schema)
 │   ├── logger.ts             # Pino logger setup
 │   ├── message-handler.ts    # Parse & save incoming messages
 │   ├── contact-resolver.ts   # Contact lookup & auto-creation

@@ -9,7 +9,7 @@
 
 Single migration file that:
 1. Creates 6 missing blueprint indexes
-2. Moves `sync_requests` from `public` to `wa_intel` schema with its RLS policies
+2. Moves `sync_requests` from `public` to `hmso` schema with its RLS policies
 
 ---
 
@@ -20,35 +20,35 @@ All indexes use `CREATE INDEX IF NOT EXISTS` for idempotency per CLAUDE.md conve
 ```sql
 -- messages: sender lookup (19,351 rows)
 CREATE INDEX IF NOT EXISTS idx_messages_sender
-  ON wa_intel.messages(sender_jid);
+  ON hmso.messages(sender_jid);
 
 -- messages: Hendra filter (partial index)
 CREATE INDEX IF NOT EXISTS idx_messages_from_hendra
-  ON wa_intel.messages(is_from_hendra)
+  ON hmso.messages(is_from_hendra)
   WHERE is_from_hendra = true;
 
 -- classified_items: classification type filter (30 rows, will grow)
 CREATE INDEX IF NOT EXISTS idx_classified_type
-  ON wa_intel.classified_items(classification);
+  ON hmso.classified_items(classification);
 
 -- classified_items: time-based sort
 CREATE INDEX IF NOT EXISTS idx_classified_time
-  ON wa_intel.classified_items(classified_at DESC);
+  ON hmso.classified_items(classified_at DESC);
 
 -- tasks: assignee filter (1 row, will grow)
 CREATE INDEX IF NOT EXISTS idx_tasks_assigned
-  ON wa_intel.tasks(assigned_to);
+  ON hmso.tasks(assigned_to);
 
 -- directions: topic filter (2 rows, will grow)
 CREATE INDEX IF NOT EXISTS idx_directions_topic
-  ON wa_intel.directions(topic);
+  ON hmso.directions(topic);
 ```
 
 **Impact:** Zero downtime. `CREATE INDEX` does not lock reads. Tables are small enough that index creation is near-instant.
 
 ---
 
-## Part 2: Move `sync_requests` to `wa_intel`
+## Part 2: Move `sync_requests` to `hmso`
 
 ### Current State (verified 2026-02-08)
 - Table: `public.sync_requests`
@@ -60,18 +60,18 @@ CREATE INDEX IF NOT EXISTS idx_directions_topic
 
 Since the table is **empty**, the simplest approach is:
 1. Drop the old table in `public`
-2. Recreate in `wa_intel` with identical structure + RLS
+2. Recreate in `hmso` with identical structure + RLS
 
 ### Why not `ALTER TABLE SET SCHEMA`?
 
-`ALTER TABLE public.sync_requests SET SCHEMA wa_intel` would work, but RLS policies reference `public.sync_requests` internally and may need recreation anyway. Since the table is empty, a clean recreate is safer and more explicit.
+`ALTER TABLE public.sync_requests SET SCHEMA hmso` would work, but RLS policies reference `public.sync_requests` internally and may need recreation anyway. Since the table is empty, a clean recreate is safer and more explicit.
 
 ```sql
 -- Drop old table
 DROP TABLE IF EXISTS public.sync_requests;
 
--- Recreate in wa_intel
-CREATE TABLE IF NOT EXISTS wa_intel.sync_requests (
+-- Recreate in hmso
+CREATE TABLE IF NOT EXISTS hmso.sync_requests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   requested_at TIMESTAMPTZ DEFAULT now(),
   status TEXT NOT NULL DEFAULT 'pending',
@@ -82,24 +82,24 @@ CREATE TABLE IF NOT EXISTS wa_intel.sync_requests (
 );
 
 -- Enable RLS
-ALTER TABLE wa_intel.sync_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hmso.sync_requests ENABLE ROW LEVEL SECURITY;
 
 -- Recreate policies
 CREATE POLICY "Authenticated users can view sync_requests"
-  ON wa_intel.sync_requests FOR SELECT
+  ON hmso.sync_requests FOR SELECT
   TO authenticated USING (true);
 
 CREATE POLICY "Authenticated users can insert sync_requests"
-  ON wa_intel.sync_requests FOR INSERT
+  ON hmso.sync_requests FOR INSERT
   TO authenticated WITH CHECK (true);
 
 CREATE POLICY "Authenticated users can update sync_requests"
-  ON wa_intel.sync_requests FOR UPDATE
+  ON hmso.sync_requests FOR UPDATE
   TO authenticated USING (true) WITH CHECK (true);
 
 -- Grant permissions
-GRANT ALL ON wa_intel.sync_requests TO authenticated;
-GRANT ALL ON wa_intel.sync_requests TO service_role;
+GRANT ALL ON hmso.sync_requests TO authenticated;
+GRANT ALL ON hmso.sync_requests TO service_role;
 ```
 
 ---
@@ -107,7 +107,7 @@ GRANT ALL ON wa_intel.sync_requests TO service_role;
 ## Code Changes Required
 
 ### Listener (`listener/src/index.ts`)
-**No changes needed.** The listener's Supabase client is already scoped to `wa_intel` schema. Once `sync_requests` moves to `wa_intel`, the existing `.from('sync_requests')` calls will resolve correctly.
+**No changes needed.** The listener's Supabase client is already scoped to `hmso` schema. Once `sync_requests` moves to `hmso`, the existing `.from('sync_requests')` calls will resolve correctly.
 
 ### Dashboard (`src/pages/OverviewPage.tsx` or wherever sync is triggered)
 **Verify:** Check if the dashboard creates sync requests. If it uses `waIntel.from('sync_requests')`, no changes needed. If it uses `supabase.from('sync_requests')` (public-scoped), it needs to switch to `waIntel`.
@@ -125,6 +125,6 @@ GRANT ALL ON wa_intel.sync_requests TO service_role;
 | Risk | Likelihood | Mitigation |
 |---|---|---|
 | Index creation locks table | Very Low | Tables are small; concurrent index not needed |
-| Listener breaks after move | Low | Listener already uses `wa_intel`-scoped client |
+| Listener breaks after move | Low | Listener already uses `hmso`-scoped client |
 | Dashboard breaks after move | Low | Verify dashboard code path before applying |
 | Data loss from drop | None | Table is confirmed empty (0 rows) |

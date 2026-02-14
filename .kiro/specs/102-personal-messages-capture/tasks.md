@@ -2,18 +2,18 @@
 
 ## Overview
 
-Incrementally extend HMWAIntel to capture, classify, and display personal WhatsApp messages. Each task builds on the previous — starting with the database schema, then the listener, then classification, then frontend. Testing sub-tasks are woven in close to their implementation.
+Incrementally extend HMSO to capture, classify, and display personal WhatsApp messages. Each task builds on the previous — starting with the database schema, then the listener, then classification, then frontend. Testing sub-tasks are woven in close to their implementation.
 
 ## Tasks
 
 - [x] 1. Database migration for personal messages support
   - [x] 1.1 Create migration file `supabase/migrations/YYYYMMDDHHMMSS_add_personal_messages_support.sql`
-    - Add `conversation_type TEXT NOT NULL DEFAULT 'group'` column to `wa_intel.messages`
-    - Add `wa_contact_jid TEXT` column to `wa_intel.messages`
+    - Add `conversation_type TEXT NOT NULL DEFAULT 'group'` column to `hmso.messages`
+    - Add `wa_contact_jid TEXT` column to `hmso.messages`
     - ALTER `wa_group_id` to drop NOT NULL constraint (use `ALTER COLUMN wa_group_id DROP NOT NULL`)
     - Add indexes: `idx_messages_conversation_type`, `idx_messages_contact_jid` (partial, WHERE NOT NULL), `idx_messages_personal_contact_time` (wa_contact_jid, timestamp DESC, WHERE conversation_type = 'personal')
-    - Update `wa_intel.today_summary` view to add `WHERE m.conversation_type = 'group'` filter (or `WHERE m.wa_group_id IS NOT NULL`)
-    - Register new columns/indexes in `hm_core.object_registry` with `owner_app = 'wa_intel'`
+    - Update `hmso.today_summary` view to add `WHERE m.conversation_type = 'group'` filter (or `WHERE m.wa_group_id IS NOT NULL`)
+    - Register new columns/indexes in `hm_core.object_registry` with `owner_app = 'hmso'`
     - Follow migration standards: comment header, IF EXISTS/IF NOT EXISTS, no dollar-quoting, grants
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 5.1, 5.3_
 
@@ -86,7 +86,7 @@ Incrementally extend HMWAIntel to capture, classify, and display personal WhatsA
 
 - [x] 6. Build frontend ConversationsPage
   - [x] 6.1 Create `src/pages/ConversationsPage.tsx`
-    - Left panel: query `wa_intel.messages` where `conversation_type = 'personal'`, group by `wa_contact_jid`, join with `contacts` table for display names
+    - Left panel: query `hmso.messages` where `conversation_type = 'personal'`, group by `wa_contact_jid`, join with `contacts` table for display names
     - Show contact name, message count, last message timestamp per contact
     - Order contacts by most recent message descending
     - Right panel: when contact selected, fetch messages for that `wa_contact_jid` ordered by timestamp ascending

@@ -49,7 +49,7 @@ For each task, verify:
 - [ ] All acceptance criteria from spec are met
 - [ ] No placeholder/TODO comments left in code
 - [ ] No hardcoded values that should be configurable
-- [ ] Uses `wa_intel` schema for all DB queries
+- [ ] Uses `hmso` schema for all DB queries
 
 ### Gate 4: Integration Testing
 After implementation:
@@ -72,7 +72,7 @@ After implementation:
 ### Before Implementation
 - Read the spec files completely
 - Read CLAUDE.md / kernel.md for conventions
-- Verify database schema matches design (query `wa_intel` schema)
+- Verify database schema matches design (query `hmso` schema)
 - Present plan to user before coding
 
 ### During Implementation

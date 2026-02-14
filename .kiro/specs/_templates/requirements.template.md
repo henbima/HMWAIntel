@@ -25,7 +25,7 @@
 
 ## Data Source
 
-`wa_intel.{table_name}` (or describe the data source)
+`hmso.{table_name}` (or describe the data source)
 
 ## Acceptance Criteria
 

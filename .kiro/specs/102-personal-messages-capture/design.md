@@ -2,7 +2,7 @@
 
 ## Overview
 
-This feature extends the HMWAIntel system to capture, store, classify, and display personal/direct WhatsApp messages alongside the existing group message pipeline. The core change is removing the `@g.us`-only filter in the message handler and adding a `conversation_type` discriminator to the unified `wa_intel.messages` table. The classification edge function gains awareness of personal message context, and a new frontend page provides a contact-based conversation view.
+This feature extends the HMSO system to capture, store, classify, and display personal/direct WhatsApp messages alongside the existing group message pipeline. The core change is removing the `@g.us`-only filter in the message handler and adding a `conversation_type` discriminator to the unified `hmso.messages` table. The classification edge function gains awareness of personal message context, and a new frontend page provides a contact-based conversation view.
 
 The design prioritizes backward compatibility — all existing group message flows (capture, classification, frontend views, briefings) remain untouched. Personal messages flow through the same pipeline with type-aware branching at key decision points.
 
@@ -17,8 +17,8 @@ flowchart TD
     MH --> |"JID ends @s.whatsapp.net"| PP[Personal Path - new]
     MH --> |"JID contains @broadcast"| DISC[Discard]
     
-    GP --> DB[(wa_intel.messages<br/>conversation_type = 'group')]
-    PP --> DB2[(wa_intel.messages<br/>conversation_type = 'personal')]
+    GP --> DB[(hmso.messages<br/>conversation_type = 'group')]
+    PP --> DB2[(hmso.messages<br/>conversation_type = 'personal')]
     
     DB --> CL[Classifier Edge Function]
     DB2 --> CL
@@ -36,7 +36,7 @@ flowchart TD
 
 ### Key Design Decisions
 
-1. **Unified messages table**: Personal messages go into the same `wa_intel.messages` table with a `conversation_type` discriminator column, rather than a separate table. This keeps the classification pipeline unified and avoids data duplication.
+1. **Unified messages table**: Personal messages go into the same `hmso.messages` table with a `conversation_type` discriminator column, rather than a separate table. This keeps the classification pipeline unified and avoids data duplication.
 
 2. **Nullable `wa_group_id`**: The existing `NOT NULL` constraint on `wa_group_id` is relaxed to allow NULL for personal messages. A new `wa_contact_jid` column stores the other party's JID for personal messages.
 
@@ -49,8 +49,8 @@ flowchart TD
 ### 1. Database Migration
 
 A single migration file adds:
-- `conversation_type TEXT NOT NULL DEFAULT 'group'` column to `wa_intel.messages`
-- `wa_contact_jid TEXT` column to `wa_intel.messages`
+- `conversation_type TEXT NOT NULL DEFAULT 'group'` column to `hmso.messages`
+- `wa_contact_jid TEXT` column to `hmso.messages`
 - Relaxes `wa_group_id` from `NOT NULL` to nullable
 - Indexes on new columns
 - Registers new objects in `hm_core.object_registry`
@@ -117,7 +117,7 @@ export interface Message {
 
 ## Data Models
 
-### Modified: `wa_intel.messages`
+### Modified: `hmso.messages`
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
@@ -137,16 +137,16 @@ All other columns remain unchanged.
 
 ### Existing Tables — No Changes
 
-- `wa_intel.groups` — unchanged
-- `wa_intel.contacts` — unchanged (personal message contacts are resolved via existing Contact_Resolver)
-- `wa_intel.classified_items` — unchanged (works with any message)
-- `wa_intel.tasks` — unchanged (`group_name` field reused for contact name)
-- `wa_intel.directions` — unchanged (`group_name` field reused for contact name)
+- `hmso.groups` — unchanged
+- `hmso.contacts` — unchanged (personal message contacts are resolved via existing Contact_Resolver)
+- `hmso.classified_items` — unchanged (works with any message)
+- `hmso.tasks` — unchanged (`group_name` field reused for contact name)
+- `hmso.directions` — unchanged (`group_name` field reused for contact name)
 
 ### Views — Minimal Changes
 
-- `wa_intel.today_summary` — add `WHERE conversation_type = 'group'` filter to preserve existing behavior
-- `wa_intel.overdue_tasks` — no change needed
+- `hmso.today_summary` — add `WHERE conversation_type = 'group'` filter to preserve existing behavior
+- `hmso.overdue_tasks` — no change needed
 
 
 ## Correctness Properties

@@ -11,18 +11,18 @@
 **File:** `supabase/migrations/XXXXXX_add_feature_flags.sql`
 
 **Acceptance Criteria:**
-- [ ] `wa_intel.feature_flags` table created with `name`, `enabled`, `description`
+- [ ] `hmso.feature_flags` table created with `name`, `enabled`, `description`
 - [ ] RLS enabled + SELECT policy for `authenticated`
 - [ ] Seed data: `drag_drop_kanban`, `activity_charts`, `realtime_updates`, `search_page` (all `false`)
 - [ ] Migration applied via Supabase MCP
 
-**Commit:** `feat(db): add feature_flags table to wa_intel schema`
+**Commit:** `feat(db): add feature_flags table to hmso schema`
 
 #### - [ ] Task 1.2: Create useFeatureFlags hook
 **File:** `src/hooks/useFeatureFlags.ts`
 
 **Acceptance Criteria:**
-- [ ] Fetches flags from `wa_intel.feature_flags` on mount
+- [ ] Fetches flags from `hmso.feature_flags` on mount
 - [ ] Exposes `isEnabled(name: string): boolean`
 - [ ] Caches flags in state (single fetch per mount)
 - [ ] Returns `false` for unknown flags
@@ -64,7 +64,7 @@
 **File:** `supabase/migrations/XXXXXX_add_group_activity_function.sql`
 
 **Acceptance Criteria:**
-- [ ] `wa_intel.get_group_activity(p_wa_group_id, p_days)` function created
+- [ ] `hmso.get_group_activity(p_wa_group_id, p_days)` function created
 - [ ] Returns: `date`, `messages`, `tasks`, `directions` per day
 - [ ] `SECURITY DEFINER` for RLS bypass
 - [ ] Migration applied via Supabase MCP
@@ -110,7 +110,7 @@
 **File:** `src/hooks/useRealtimeSubscription.ts`
 
 **Acceptance Criteria:**
-- [ ] Subscribes to `postgres_changes` on specified `wa_intel` table
+- [ ] Subscribes to `postgres_changes` on specified `hmso` table
 - [ ] Calls callback function on any change (INSERT/UPDATE/DELETE)
 - [ ] Cleans up channel on unmount
 - [ ] Handles connection errors gracefully
@@ -151,7 +151,7 @@
 - [ ] Run `npm run typecheck` (0 errors)
 - [ ] Run `npm run build` (successful)
 - [ ] Run `npm run lint` (warnings OK, errors fixed)
-- [ ] Verify feature flags: all 4 flags exist in `wa_intel.feature_flags`
+- [ ] Verify feature flags: all 4 flags exist in `hmso.feature_flags`
 - [ ] Verify DnD: drag task card → status updates in DB
 - [ ] Verify chart: select group → chart renders with data
 - [ ] Verify realtime: add message via SQL → dashboard updates automatically

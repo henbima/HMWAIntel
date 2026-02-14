@@ -1,4 +1,4 @@
-# SPEC_REGISTRY — HMWAIntel (WhatsApp message intelligence platform for monitoring, classifying, and surfacing actionable insights)
+# SPEC_REGISTRY — HMSO (Signal operations platform for monitoring, classifying, and surfacing actionable insights)
 
 > Central registry of all feature specifications. **This is the single source of truth for spec status.**
 >
@@ -11,10 +11,10 @@
 | Status | Count | Location |
 |--------|-------|----------|
 | In Progress | 6 | `.kiro/specs/` |
-| Planned | 0 | `.kiro/specs/` |
+| Planned | 1 | `.kiro/specs/` |
 | Pending | 0 | `.kiro/specs/_pending/` |
 | **Complete** | **3** | `.kiro/specs/_completed/` |
-| **Total** | **9** | |
+| **Total** | **10** | |
 
 ---
 
@@ -41,6 +41,12 @@
 |---|------|-------|--------|-------------|
 | 201 | Classifier Improvements | 1 | In Progress | Improve AI message classification accuracy |
 | 202 | Topic-Based Classification Redesign | 1 | In Progress | Redesign classification to use topic-based approach |
+
+### 3xx — Contacts & Groups
+
+| # | Name | Phase | Status | Description |
+|---|------|-------|--------|-------------|
+| 301 | Group Category Management | 1 | Planned | Categorize WhatsApp groups by relevance with priority-based briefing rendering |
 
 ### 4xx — Briefings & Delivery
 
@@ -90,7 +96,7 @@ _None currently._
 | 0xx | Foundation & Discovery | 002 |
 | 1xx | Listener & Infrastructure | 103 |
 | 2xx | Classification & AI | 203 |
-| 3xx | Contacts & Groups | 301 |
+| 3xx | Contacts & Groups | 302 |
 | 4xx | Briefings & Delivery | 402 |
 | 5xx | Tasks & Directions | 501 |
 | 6xx | Dashboard & UI | 602 |

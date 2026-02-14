@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The HMWAIntel system currently captures only WhatsApp group messages (`@g.us` JIDs) and explicitly filters out personal/direct messages (`@s.whatsapp.net` JIDs). This feature extends the system to also capture personal messages sent to and from Hendra's WhatsApp account. The goal is to gather all data revolving around Hendra — groups and personal — to later build briefings, knowledge base, important notes, and daily task reminders. This is forward-only capture; historical personal messages cannot be retrieved via Baileys.
+The HMSO system currently captures only WhatsApp group messages (`@g.us` JIDs) and explicitly filters out personal/direct messages (`@s.whatsapp.net` JIDs). This feature extends the system to also capture personal messages sent to and from Hendra's WhatsApp account. The goal is to gather all data revolving around Hendra — groups and personal — to later build briefings, knowledge base, important notes, and daily task reminders. This is forward-only capture; historical personal messages cannot be retrieved via Baileys.
 
 ## Glossary
 
@@ -13,7 +13,7 @@ The HMWAIntel system currently captures only WhatsApp group messages (`@g.us` JI
 - **Group_Message**: A WhatsApp message sent within a group chat, identified by a JID ending in `@g.us`
 - **Conversation_Type**: A field distinguishing whether a message belongs to a group chat (`group`) or a personal/direct chat (`personal`)
 - **Contact_JID**: The WhatsApp identifier for an individual contact, in the format `<phone>@s.whatsapp.net`
-- **Messages_Table**: The `wa_intel.messages` table that stores all captured WhatsApp messages
+- **Messages_Table**: The `hmso.messages` table that stores all captured WhatsApp messages
 - **Conversations_Page**: A new frontend page that displays personal message threads grouped by contact
 - **Contact_Resolver**: The module that resolves sender JIDs to contact records in the database
 
@@ -29,7 +29,7 @@ The HMWAIntel system currently captures only WhatsApp group messages (`@g.us` JI
 2. WHEN a migration adds the `conversation_type` column, THE Messages_Table SHALL set all existing rows to `group`
 3. THE Messages_Table SHALL allow `wa_group_id` to be NULL for personal messages
 4. WHEN a personal message is stored, THE Messages_Table SHALL store the Contact_JID of the other party in a `wa_contact_jid` column
-5. WHEN new database objects are created, THE migration SHALL register each object in `hm_core.object_registry` with `owner_app = 'wa_intel'`
+5. WHEN new database objects are created, THE migration SHALL register each object in `hm_core.object_registry` with `owner_app = 'hmso'`
 6. THE migration SHALL create indexes on the `conversation_type` and `wa_contact_jid` columns for query performance
 
 ### Requirement 2: Listener Capture of Personal Messages

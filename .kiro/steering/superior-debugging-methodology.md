@@ -29,7 +29,7 @@ inclusion: manual
 #### Quick Commands
 ```bash
 # Check recent migrations
-ls -la HMWAIntel/supabase/migrations/ | tail -10
+ls -la HMSO/supabase/migrations/ | tail -10
 
 # Check recent git changes
 git log --oneline --since="7 days ago"
@@ -47,7 +47,7 @@ ORDER BY version DESC LIMIT 5;
 *"What infrastructure does this feature depend on?"*
 
 #### System Dependency Checklist
-- [ ] **Database Tables**: Do all required tables exist in `wa_intel` schema?
+- [ ] **Database Tables**: Do all required tables exist in `hmso` schema?
 - [ ] **Database Columns**: Are column names/types correct?
 - [ ] **Foreign Keys**: Are relationships intact?
 - [ ] **RLS Policies**: Are security policies working?
@@ -56,9 +56,9 @@ ORDER BY version DESC LIMIT 5;
 
 #### HMSO-Specific Dependencies
 ```sql
--- Verify critical wa_intel tables exist
+-- Verify critical hmso tables exist
 SELECT table_name FROM information_schema.tables
-WHERE table_schema = 'wa_intel'
+WHERE table_schema = 'hmso'
 AND table_name IN (
   'messages', 'groups', 'contacts', 'group_members',
   'classified_items', 'tasks', 'directions',
@@ -71,7 +71,7 @@ AND table_name IN (
 ```
 1. UI Component → What service does it call?
 2. Service Layer → What database tables does it query?
-3. Database → Do tables/columns exist in wa_intel?
+3. Database → Do tables/columns exist in hmso?
 4. Authorization → What RLS policies apply?
 5. External → Is the listener/edge function working?
 ```
@@ -86,7 +86,7 @@ AND table_name IN (
 -- Test table existence
 SELECT column_name, data_type
 FROM information_schema.columns
-WHERE table_name = 'suspected_table' AND table_schema = 'wa_intel';
+WHERE table_name = 'suspected_table' AND table_schema = 'hmso';
 
 -- Test RLS policies
 SELECT policyname, cmd, qual
@@ -94,7 +94,7 @@ FROM pg_policies
 WHERE tablename = 'target_table';
 
 -- Test actual data access
-SELECT COUNT(*) FROM wa_intel.target_table;
+SELECT COUNT(*) FROM hmso.target_table;
 
 -- Check object ownership (boundary safety)
 SELECT owner_app, description
@@ -127,8 +127,8 @@ WHERE object_name = 'target_table';
 
 **Pattern 1: Wrong Schema**
 - Symptom: Empty results, table not found
-- Root Cause: Querying `public` instead of `wa_intel`
-- Fix: Use `supabase.schema('wa_intel').from('table')`
+- Root Cause: Querying `public` instead of `hmso`
+- Fix: Use `supabase.schema('hmso').from('table')`
 
 **Pattern 2: RLS Blocking**
 - Symptom: Silent failures, empty results for authenticated users
@@ -151,22 +151,22 @@ WHERE object_name = 'target_table';
 
 ### "Messages not showing"
 1. Check: Is the listener running and connected?
-2. Check: Are messages being inserted into `wa_intel.messages`?
+2. Check: Are messages being inserted into `hmso.messages`?
 3. Check: Is the `source_type` correct?
 4. Check: Is RLS allowing the read?
-5. Check: Is the frontend querying `wa_intel` schema?
+5. Check: Is the frontend querying `hmso` schema?
 
 ### "Classification not working"
 1. Check: Is the classify-messages edge function deployed?
-2. Check: Are there unclassified messages in `wa_intel.messages`?
+2. Check: Are there unclassified messages in `hmso.messages`?
 3. Check: Is the OpenAI API key valid?
-4. Check: Are results being written to `wa_intel.classified_items`?
+4. Check: Are results being written to `hmso.classified_items`?
 
 ### "Briefing not generating"
 1. Check: Is the daily-briefing edge function deployed?
-2. Check: Is the cron job scheduled? (`SELECT * FROM cron.job WHERE jobname LIKE 'wa_intel%'`)
+2. Check: Is the cron job scheduled? (`SELECT * FROM cron.job WHERE jobname LIKE 'hmso%'`)
 3. Check: Are there enough messages for the briefing period?
-4. Check: Are results in `wa_intel.daily_briefings`?
+4. Check: Are results in `hmso.daily_briefings`?
 
 ---
 
@@ -182,7 +182,7 @@ WHERE object_name = 'target_table';
 - **User Impact**: [How many users affected?]
 
 ### Phase 2: Dependency Mapping
-- **Database Dependencies**: [Tables, columns in wa_intel]
+- **Database Dependencies**: [Tables, columns in hmso]
 - **Service Dependencies**: [What services are called?]
 - **External Dependencies**: [Listener, edge functions, APIs]
 
@@ -206,7 +206,7 @@ WHERE object_name = 'target_table';
 - Don't add `any` types to "fix" errors — find the real type
 - Don't restart the server as first action — understand the error first
 - Don't delete and recreate — understand why it broke
-- Don't assume schema — always verify against `wa_intel`
+- Don't assume schema — always verify against `hmso`
 - Don't touch other apps' objects — check boundary first
 
 ---
@@ -215,22 +215,22 @@ WHERE object_name = 'target_table';
 
 ### Database Investigation
 ```sql
-SELECT table_name FROM information_schema.tables WHERE table_schema = 'wa_intel';
-SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'target' AND table_schema = 'wa_intel';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'hmso';
+SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'target' AND table_schema = 'hmso';
 SELECT policyname, cmd, qual FROM pg_policies WHERE tablename = 'target';
-SELECT COUNT(*) FROM wa_intel.target_table;
+SELECT COUNT(*) FROM hmso.target_table;
 ```
 
 ### Boundary Investigation
 ```sql
 SELECT owner_app, description FROM hm_core.object_registry WHERE object_name = 'target';
-SELECT * FROM hm_core.object_registry WHERE owner_app = 'wa_intel';
+SELECT * FROM hm_core.object_registry WHERE owner_app = 'hmso';
 ```
 
 ### Migration Investigation
 ```bash
 # Recent migrations
-dir HMWAIntel\supabase\migrations\ /O:-D
+dir HMSO\supabase\migrations\ /O:-D
 ```
 
 **Remember: Always start with "What changed recently?" and trace dependencies before looking at UI components.**

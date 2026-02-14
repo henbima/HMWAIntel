@@ -30,7 +30,7 @@
 
 ```sql
 -- Example table definition
-CREATE TABLE IF NOT EXISTS wa_intel.{table_name} (
+CREATE TABLE IF NOT EXISTS hmso.{table_name} (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   -- columns...
   created_at TIMESTAMPTZ DEFAULT now(),

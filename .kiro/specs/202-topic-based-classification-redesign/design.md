@@ -16,7 +16,7 @@
 │  ┌──────────────────────────────────────────┐               │
 │  │ Message arrives → DB trigger/function     │               │
 │  │ Keyword/heuristic scan (NO AI)           │               │
-│  │ → INSERT wa_intel.message_flags          │               │
+│  │ → INSERT hmso.message_flags          │               │
 │  │ Flags: urgent, hendra_instruction,       │               │
 │  │        question, low_stock, complaint    │               │
 │  └──────────────────────────────────────────┘               │
@@ -30,7 +30,7 @@
 │  │  1. Fetch full day's messages (24h)       │               │
 │  │  2. AI topic segmentation                 │               │
 │  │  3. AI topic classification               │               │
-│  │  4. Store → wa_intel.daily_topics         │               │
+│  │  4. Store → hmso.daily_topics         │               │
 │  │  5. Auto-create tasks & directions        │               │
 │  │                                           │               │
 │  │ Then: check ongoing multi-day topics      │               │
@@ -39,7 +39,7 @@
 │                                                              │
 │  DAILY BRIEFING (7AM WIB, unchanged cron)                    │
 │  ┌──────────────────────────────────────────┐               │
-│  │ Reads wa_intel.daily_topics (not          │               │
+│  │ Reads hmso.daily_topics (not          │               │
 │  │ classified_items) → topic-based briefing  │               │
 │  └──────────────────────────────────────────┘               │
 │                                                              │
@@ -53,9 +53,9 @@
         │
         ├──→ [Layer 1: Triage Function]
         │       │
-        │       └──→ wa_intel.message_flags (instant, keyword-based)
+        │       └──→ hmso.message_flags (instant, keyword-based)
         │
-        └──→ wa_intel.messages (existing flow, unchanged)
+        └──→ hmso.messages (existing flow, unchanged)
                 │
                 │  ⏰ Once daily at 6AM WIB
                 ▼
@@ -64,57 +64,57 @@
                 ├── Step 1: Fetch yesterday's messages per group
                 ├── Step 2: AI topic segmentation (group related msgs)
                 ├── Step 3: AI topic classification (per topic)
-                ├── Step 4: Store → wa_intel.daily_topics
+                ├── Step 4: Store → hmso.daily_topics
                 ├── Step 5: Auto-create tasks & directions
                 └── Step 6: Check multi-day ongoing topics
                         │
                         ▼
         [Daily Briefing Edge Function — 7AM WIB]
                 │
-                └──→ wa_intel.daily_briefings (topic-based format)
+                └──→ hmso.daily_briefings (topic-based format)
 ```
 
 ---
 
 ## 2. Database Changes
 
-### 2a. New Table: `wa_intel.message_flags`
+### 2a. New Table: `hmso.message_flags`
 
 Purpose: Lightweight real-time flags for urgent/important message detection.
 
 ```sql
-CREATE TABLE IF NOT EXISTS wa_intel.message_flags (
+CREATE TABLE IF NOT EXISTS hmso.message_flags (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    message_id UUID NOT NULL REFERENCES wa_intel.messages(id) ON DELETE CASCADE,
+    message_id UUID NOT NULL REFERENCES hmso.messages(id) ON DELETE CASCADE,
     flag_type TEXT NOT NULL,
     confidence REAL DEFAULT 1.0,
     resolved_at TIMESTAMPTZ,
-    resolved_by_message_id UUID REFERENCES wa_intel.messages(id),
+    resolved_by_message_id UUID REFERENCES hmso.messages(id),
     flagged_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_message_flags_type
-    ON wa_intel.message_flags(flag_type);
+    ON hmso.message_flags(flag_type);
 CREATE INDEX IF NOT EXISTS idx_message_flags_unresolved
-    ON wa_intel.message_flags(flag_type)
+    ON hmso.message_flags(flag_type)
     WHERE resolved_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_message_flags_message
-    ON wa_intel.message_flags(message_id);
+    ON hmso.message_flags(message_id);
 
 -- RLS
-ALTER TABLE wa_intel.message_flags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hmso.message_flags ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Service role full access on message_flags"
-    ON wa_intel.message_flags FOR ALL
+    ON hmso.message_flags FOR ALL
     TO service_role USING (true) WITH CHECK (true);
 
 CREATE POLICY "Authenticated read message_flags"
-    ON wa_intel.message_flags FOR SELECT
+    ON hmso.message_flags FOR SELECT
     TO authenticated USING (true);
 
 -- Grants
-GRANT SELECT ON wa_intel.message_flags TO authenticated;
-GRANT ALL ON wa_intel.message_flags TO service_role;
+GRANT SELECT ON hmso.message_flags TO authenticated;
+GRANT ALL ON hmso.message_flags TO service_role;
 ```
 
 **Flag types:**
@@ -127,14 +127,14 @@ GRANT ALL ON wa_intel.message_flags TO service_role;
 | `low_stock` | Keywords: stok habis, tinggal X karton, kosong, out of stock, habis | "Minyak goreng tinggal 3" |
 | `complaint` | Keywords: komplain, marah, kecewa, rusak, expired, cacat | "Customer komplain roti expired" |
 
-### 2b. New Table: `wa_intel.daily_topics`
+### 2b. New Table: `hmso.daily_topics`
 
 Purpose: One row per identified topic per day per group. The primary classification unit.
 
 ```sql
-CREATE TABLE IF NOT EXISTS wa_intel.daily_topics (
+CREATE TABLE IF NOT EXISTS hmso.daily_topics (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    group_id UUID REFERENCES wa_intel.groups(id),
+    group_id UUID REFERENCES hmso.groups(id),
     topic_date DATE NOT NULL,
     topic_label TEXT NOT NULL,
     message_ids UUID[] NOT NULL,
@@ -151,7 +151,7 @@ CREATE TABLE IF NOT EXISTS wa_intel.daily_topics (
     key_participants TEXT[],
     key_decisions TEXT[],
     is_ongoing BOOLEAN DEFAULT false,
-    continued_from UUID REFERENCES wa_intel.daily_topics(id),
+    continued_from UUID REFERENCES hmso.daily_topics(id),
     ai_model TEXT,
     raw_ai_response JSONB,
     analyzed_at TIMESTAMPTZ DEFAULT now(),
@@ -159,32 +159,32 @@ CREATE TABLE IF NOT EXISTS wa_intel.daily_topics (
 );
 
 CREATE INDEX IF NOT EXISTS idx_daily_topics_date
-    ON wa_intel.daily_topics(topic_date DESC);
+    ON hmso.daily_topics(topic_date DESC);
 CREATE INDEX IF NOT EXISTS idx_daily_topics_group_date
-    ON wa_intel.daily_topics(group_id, topic_date DESC);
+    ON hmso.daily_topics(group_id, topic_date DESC);
 CREATE INDEX IF NOT EXISTS idx_daily_topics_class
-    ON wa_intel.daily_topics(classification);
+    ON hmso.daily_topics(classification);
 CREATE INDEX IF NOT EXISTS idx_daily_topics_ongoing
-    ON wa_intel.daily_topics(is_ongoing)
+    ON hmso.daily_topics(is_ongoing)
     WHERE is_ongoing = true;
 CREATE INDEX IF NOT EXISTS idx_daily_topics_action
-    ON wa_intel.daily_topics(action_needed)
+    ON hmso.daily_topics(action_needed)
     WHERE action_needed = true;
 
 -- RLS
-ALTER TABLE wa_intel.daily_topics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hmso.daily_topics ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Service role full access on daily_topics"
-    ON wa_intel.daily_topics FOR ALL
+    ON hmso.daily_topics FOR ALL
     TO service_role USING (true) WITH CHECK (true);
 
 CREATE POLICY "Authenticated read daily_topics"
-    ON wa_intel.daily_topics FOR SELECT
+    ON hmso.daily_topics FOR SELECT
     TO authenticated USING (true);
 
 -- Grants
-GRANT SELECT ON wa_intel.daily_topics TO authenticated;
-GRANT ALL ON wa_intel.daily_topics TO service_role;
+GRANT SELECT ON hmso.daily_topics TO authenticated;
+GRANT ALL ON hmso.daily_topics TO service_role;
 ```
 
 **Key columns explained:**
@@ -203,12 +203,12 @@ GRANT ALL ON wa_intel.daily_topics TO service_role;
 | `continued_from` | Self-FK to previous day's topic (multi-day tracking) |
 | `raw_ai_response` | Full AI JSON response for debugging/iteration |
 
-### 2c. Modify: `wa_intel.daily_briefings`
+### 2c. Modify: `hmso.daily_briefings`
 
 Add columns for the new topic-based approach:
 
 ```sql
-ALTER TABLE wa_intel.daily_briefings
+ALTER TABLE hmso.daily_briefings
     ADD COLUMN IF NOT EXISTS topics_analyzed INTEGER DEFAULT 0,
     ADD COLUMN IF NOT EXISTS groups_analyzed INTEGER DEFAULT 0,
     ADD COLUMN IF NOT EXISTS ongoing_topics_count INTEGER DEFAULT 0,
@@ -228,10 +228,10 @@ ALTER TABLE wa_intel.daily_briefings
 
 ### Implementation: Postgres Function + Trigger
 
-A PL/pgSQL function that fires on every `INSERT` into `wa_intel.messages`. No AI, just keyword matching.
+A PL/pgSQL function that fires on every `INSERT` into `hmso.messages`. No AI, just keyword matching.
 
 ```sql
-CREATE OR REPLACE FUNCTION wa_intel.triage_message()
+CREATE OR REPLACE FUNCTION hmso.triage_message()
 RETURNS TRIGGER AS $$
 DECLARE
     msg_text TEXT;
@@ -249,34 +249,34 @@ BEGIN
     -- Urgent keywords
     IF msg_lower ~ '(urgent|darurat|segera|asap|kebakaran|emergency|gawat)'
     THEN
-        INSERT INTO wa_intel.message_flags (message_id, flag_type, confidence)
+        INSERT INTO hmso.message_flags (message_id, flag_type, confidence)
         VALUES (NEW.id, 'urgent', 1.0);
     END IF;
 
     -- Hendra instruction (long message from Hendra = likely direction/task)
     IF is_hendra AND length(msg_text) > 50 THEN
-        INSERT INTO wa_intel.message_flags (message_id, flag_type, confidence)
+        INSERT INTO hmso.message_flags (message_id, flag_type, confidence)
         VALUES (NEW.id, 'hendra_instruction', 0.8);
     END IF;
 
     -- Question detection
     IF msg_text ~ '\?$' OR msg_lower ~ '^(apa|kapan|dimana|di mana|bagaimana|kenapa|siapa|berapa|gimana|mana|bisa|boleh|ada)\s'
     THEN
-        INSERT INTO wa_intel.message_flags (message_id, flag_type, confidence)
+        INSERT INTO hmso.message_flags (message_id, flag_type, confidence)
         VALUES (NEW.id, 'question', 0.9);
     END IF;
 
     -- Low stock
     IF msg_lower ~ '(stok habis|stok kosong|tinggal \d|out of stock|barang habis|persediaan habis)'
     THEN
-        INSERT INTO wa_intel.message_flags (message_id, flag_type, confidence)
+        INSERT INTO hmso.message_flags (message_id, flag_type, confidence)
         VALUES (NEW.id, 'low_stock', 0.9);
     END IF;
 
     -- Complaint
     IF msg_lower ~ '(komplain|complaint|marah|kecewa|rusak|expired|cacat|kadaluarsa|basi)'
     THEN
-        INSERT INTO wa_intel.message_flags (message_id, flag_type, confidence)
+        INSERT INTO hmso.message_flags (message_id, flag_type, confidence)
         VALUES (NEW.id, 'complaint', 0.85);
     END IF;
 
@@ -285,9 +285,9 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE TRIGGER trg_triage_message
-    AFTER INSERT ON wa_intel.messages
+    AFTER INSERT ON hmso.messages
     FOR EACH ROW
-    EXECUTE FUNCTION wa_intel.triage_message();
+    EXECUTE FUNCTION hmso.triage_message();
 ```
 
 **Performance:** Regex matching on a single text field is < 1ms. No external calls. No AI. Fires inline with message insert.

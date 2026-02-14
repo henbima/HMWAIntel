@@ -85,8 +85,8 @@ SELECT
   COUNT(*) as messages,
   COUNT(ci.id) FILTER (WHERE ci.classification = 'task') as tasks,
   COUNT(ci.id) FILTER (WHERE ci.classification = 'direction') as directions
-FROM wa_intel.messages m
-LEFT JOIN wa_intel.classified_items ci ON ci.message_id = m.id
+FROM hmso.messages m
+LEFT JOIN hmso.classified_items ci ON ci.message_id = m.id
 WHERE m.wa_group_id = $groupId
   AND m.timestamp >= CURRENT_DATE - INTERVAL '14 days'
 GROUP BY DATE(timestamp)
@@ -96,7 +96,7 @@ ORDER BY date;
 Since Supabase JS client doesn't support raw SQL aggregation easily, this will be implemented as a database function:
 
 ```sql
-CREATE OR REPLACE FUNCTION wa_intel.get_group_activity(
+CREATE OR REPLACE FUNCTION hmso.get_group_activity(
   p_wa_group_id TEXT,
   p_days INTEGER DEFAULT 14
 ) RETURNS TABLE(date DATE, messages BIGINT, tasks BIGINT, directions BIGINT)
@@ -106,8 +106,8 @@ LANGUAGE sql SECURITY DEFINER AS $$
     COUNT(DISTINCT m.id) as messages,
     COUNT(DISTINCT ci.id) FILTER (WHERE ci.classification = 'task') as tasks,
     COUNT(DISTINCT ci.id) FILTER (WHERE ci.classification = 'direction') as directions
-  FROM wa_intel.messages m
-  LEFT JOIN wa_intel.classified_items ci ON ci.message_id = m.id
+  FROM hmso.messages m
+  LEFT JOIN hmso.classified_items ci ON ci.message_id = m.id
   WHERE m.wa_group_id = p_wa_group_id
     AND m.timestamp >= CURRENT_DATE - p_days
   GROUP BY DATE(m.timestamp)
@@ -147,7 +147,7 @@ export function useRealtimeSubscription(
       .channel(`${table}-changes`)
       .on('postgres_changes', {
         event: '*',
-        schema: 'wa_intel',
+        schema: 'hmso',
         table,
         filter,
       }, () => {
@@ -181,7 +181,7 @@ Each page subscribes when mounted, unsubscribes on unmount. Callback triggers th
 ### Database Table
 
 ```sql
-CREATE TABLE IF NOT EXISTS wa_intel.feature_flags (
+CREATE TABLE IF NOT EXISTS hmso.feature_flags (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT UNIQUE NOT NULL,
   enabled BOOLEAN DEFAULT false,
@@ -190,14 +190,14 @@ CREATE TABLE IF NOT EXISTS wa_intel.feature_flags (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE wa_intel.feature_flags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hmso.feature_flags ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Authenticated users can view feature_flags"
-  ON wa_intel.feature_flags FOR SELECT
+  ON hmso.feature_flags FOR SELECT
   TO authenticated USING (auth.uid() IS NOT NULL);
 
-GRANT SELECT ON wa_intel.feature_flags TO authenticated;
-GRANT ALL ON wa_intel.feature_flags TO service_role;
+GRANT SELECT ON hmso.feature_flags TO authenticated;
+GRANT ALL ON hmso.feature_flags TO service_role;
 ```
 
 ### Hook: `src/hooks/useFeatureFlags.ts`
@@ -239,7 +239,7 @@ return (
 ### Initial Flags to Seed
 
 ```sql
-INSERT INTO wa_intel.feature_flags (name, enabled, description) VALUES
+INSERT INTO hmso.feature_flags (name, enabled, description) VALUES
   ('drag_drop_kanban', false, 'Enable drag & drop on task kanban board'),
   ('activity_charts', false, 'Enable message activity charts on groups page'),
   ('realtime_updates', false, 'Enable Supabase Realtime subscriptions'),

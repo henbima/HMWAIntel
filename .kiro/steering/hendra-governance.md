@@ -5,7 +5,7 @@ inclusion: manual
 # Hendra AI Governance Prompt Pack v1
 
 > Full governance framework for operational/system-design decisions.
-> Source: `HMWAIntel/docs/Hendra_Core_Package/HENDRA AI GOVERNANCE PROMPT PACK v1.md`
+> Source: `HMSO/docs/Hendra_Core_Package/HENDRA AI GOVERNANCE PROMPT PACK v1.md`
 
 ---
 

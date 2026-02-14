@@ -32,7 +32,7 @@ Run via **Supabase MCP** to verify spec claims:
 -- Verify table schema matches spec claims
 SELECT column_name, data_type, is_nullable
 FROM information_schema.columns
-WHERE table_name = '{table_name}' AND table_schema = 'wa_intel'
+WHERE table_name = '{table_name}' AND table_schema = 'hmso'
 ORDER BY ordinal_position;
 
 -- Check RLS policies
@@ -71,7 +71,7 @@ FROM hm_core.object_registry WHERE object_name = '{object_name}';
 - [ ] Can this be executed without assumptions?
 - [ ] Missing critical details? (error handling, edge cases, rollback)
 - [ ] File paths are specific and under `HMWAIntel/`?
-- [ ] Database changes use `wa_intel` schema?
+- [ ] Database changes use `hmso` schema?
 - [ ] New objects registered in `hm_core.object_registry`?
 
 ---
@@ -88,7 +88,7 @@ FROM hm_core.object_registry WHERE object_name = '{object_name}';
 - [ ] Migration-first workflow
 - [ ] RLS policies defined for new tables
 - [ ] No dollar-quoting (MCP compatibility)
-- [ ] Boundary check (only `wa_intel` objects)
+- [ ] Boundary check (only `hmso` objects)
 - [ ] UUID primary keys with `gen_random_uuid()`
 
 ---
@@ -122,7 +122,7 @@ FROM hm_core.object_registry WHERE object_name = '{object_name}';
 
 ### Standards Compliance
 ```
-- [ ] wa_intel schema used ✅/❌
+- [ ] hmso schema used ✅/❌
 - [ ] Object registry registration ✅/❌
 - [ ] Migration-first workflow ✅/❌
 - [ ] RLS policies defined ✅/❌

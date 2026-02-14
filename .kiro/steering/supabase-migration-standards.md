@@ -14,7 +14,7 @@ Examples:
 
 ### Rules
 - Timestamps must be unique — never reuse
-- Only `.sql` files in `HMWAIntel/supabase/migrations/`
+- Only `.sql` files in `HMSO/supabase/migrations/`
 - Never rename an applied migration
 - Names should describe what the migration does
 - Use CURRENT timestamp, not example dates
@@ -23,7 +23,7 @@ Examples:
 
 ## Migration File Location
 
-All migrations go in: `HMWAIntel/supabase/migrations/`
+All migrations go in: `HMSO/supabase/migrations/`
 
 Also applied via Supabase MCP `apply_migration` tool for remote execution.
 
@@ -44,7 +44,7 @@ Also applied via Supabase MCP `apply_migration` tool for remote execution.
 -- Migration: Create signal_sources table
 -- Purpose: Track different signal input sources for HMSO
 
-CREATE TABLE IF NOT EXISTS wa_intel.signal_sources (
+CREATE TABLE IF NOT EXISTS hmso.signal_sources (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   source_type TEXT NOT NULL,
   source_name TEXT NOT NULL,
@@ -55,21 +55,21 @@ CREATE TABLE IF NOT EXISTS wa_intel.signal_sources (
 );
 
 -- Enable RLS
-ALTER TABLE wa_intel.signal_sources ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hmso.signal_sources ENABLE ROW LEVEL SECURITY;
 
 -- Policies
 CREATE POLICY "Authenticated users can read signal sources"
-  ON wa_intel.signal_sources FOR SELECT
+  ON hmso.signal_sources FOR SELECT
   USING (auth.uid() IS NOT NULL);
 
 -- Grants
-GRANT SELECT ON wa_intel.signal_sources TO authenticated;
-GRANT SELECT ON wa_intel.signal_sources TO anon;
-GRANT ALL ON wa_intel.signal_sources TO service_role;
+GRANT SELECT ON hmso.signal_sources TO authenticated;
+GRANT SELECT ON hmso.signal_sources TO anon;
+GRANT ALL ON hmso.signal_sources TO service_role;
 
 -- Register in object registry
 INSERT INTO hm_core.object_registry (object_type, object_name, object_schema, owner_app, description)
-VALUES ('table', 'signal_sources', 'wa_intel', 'wa_intel', 'Tracks different signal input sources for HMSO');
+VALUES ('table', 'signal_sources', 'hmso', 'hmso', 'Tracks different signal input sources for HMSO');
 ```
 
 ---
@@ -91,7 +91,7 @@ $$ LANGUAGE plpgsql;
 
 Good:
 ```sql
-CREATE FUNCTION wa_intel__my_func() RETURNS void AS '
+CREATE FUNCTION hmso__my_func() RETURNS void AS '
 BEGIN
   -- code
 END;
@@ -114,7 +114,7 @@ NEVER include these in migrations without explicit user approval AND boundary ch
 - `DELETE FROM` (bulk deletes)
 
 If destructive operations are needed:
-1. Check `hm_core.object_registry` for ownership (`owner_app = 'wa_intel'`)
+1. Check `hm_core.object_registry` for ownership (`owner_app = 'hmso'`)
 2. Get user approval
 3. Document the reason in the migration comment
 4. Create a backup migration first
@@ -124,7 +124,7 @@ If destructive operations are needed:
 ## Enforcement Checklist
 
 Before approving any migration:
-- [ ] File in `HMWAIntel/supabase/migrations/` with timestamp name
+- [ ] File in `HMSO/supabase/migrations/` with timestamp name
 - [ ] Comment header with purpose
 - [ ] `IF NOT EXISTS` / `IF EXISTS` used
 - [ ] RLS policies for new tables
@@ -132,5 +132,5 @@ Before approving any migration:
 - [ ] Grants to `authenticated`, `anon`, `service_role`
 - [ ] No dollar-quoting (MCP compatibility)
 - [ ] Object registered in `hm_core.object_registry`
-- [ ] Boundary check passed (only `wa_intel` objects)
+- [ ] Boundary check passed (only `hmso` objects)
 - [ ] No destructive operations without approval

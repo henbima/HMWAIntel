@@ -72,7 +72,7 @@ const result = (items || [])
 export const messageService = {
   async getMessages(groupId: string) {
     const { data, error } = await supabase
-      .schema('wa_intel')
+      .schema('hmso')
       .from('messages')
       .select('*')
       .eq('group_id', groupId)
@@ -90,7 +90,7 @@ const MessageList = () => {
 ```typescript
 // WRONG — Direct DB access in component
 const MyComponent = () => {
-  const { data } = supabase.schema('wa_intel').from('messages').select() // NO!
+  const { data } = supabase.schema('hmso').from('messages').select() // NO!
 }
 ```
 
@@ -128,7 +128,7 @@ const MessageList = ({ messages }: { messages?: Message[] }) => {
 - [ ] Error handling implemented
 - [ ] No `console.log` left (except intentional debug)
 - [ ] Follows project naming conventions (kebab-case files, PascalCase components)
-- [ ] Uses `wa_intel` schema for all Supabase queries
+- [ ] Uses `hmso` schema for all Supabase queries
 
 ---
 

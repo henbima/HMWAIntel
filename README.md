@@ -1,6 +1,6 @@
-﻿# HMWAIntel — HollyMart WhatsApp Intelligence
+﻿# HMSO — HollyMart Signal Operations
 
-**WhatsApp message intelligence platform** that monitors group conversations, classifies messages using AI, and surfaces actionable insights (tasks, directions, briefings) for HollyMart leadership.
+**Signal operations platform** that monitors group conversations, classifies messages using AI, and surfaces actionable insights (tasks, directions, briefings) for HollyMart leadership.
 
 ## Tech Stack
 
@@ -62,7 +62,7 @@ docs/
 
 ## Database Schema
 
-All tables live in the **`wa_intel`** schema (separate from HMCS public schema):
+All tables live in the **`hmso`** schema (separate from HMCS public schema):
 
 - **`groups`** — Monitored WhatsApp groups
 - **`contacts`** — Known contacts with role/location metadata
@@ -73,7 +73,7 @@ All tables live in the **`wa_intel`** schema (separate from HMCS public schema):
 - **`directions`** — Leadership directions with validity tracking
 - **`daily_briefings`** — AI-generated daily summary briefings
 
-Full schema: `wa_intel_setup.sql`
+Full schema: `hmso_setup.sql`
 
 ## Key Documentation
 

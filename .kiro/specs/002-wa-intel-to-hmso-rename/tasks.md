@@ -150,17 +150,17 @@
 
 ### Phase 4: Config & Schema Reference
 
-#### - [ ] Task 4.1: Update package.json and rename setup file
+#### - [x] Task 4.1: Update package.json and rename setup file
 **Delegate:** Sonnet
 **Files:**
 - `package.json`
 - `wa_intel_setup.sql` → `hmso_setup.sql`
 
 **Acceptance Criteria:**
-- [ ] package.json name is "hmso-dashboard"
-- [ ] wa_intel_setup.sql renamed to hmso_setup.sql
-- [ ] All wa_intel references inside hmso_setup.sql updated to hmso
-- [ ] WA column names (wa_jid, wa_group_id, etc.) preserved unchanged
+- [x] package.json name is "hmso-dashboard"
+- [x] wa_intel_setup.sql renamed to hmso_setup.sql
+- [x] All wa_intel references inside hmso_setup.sql updated to hmso
+- [x] WA column names (wa_jid, wa_group_id, etc.) preserved unchanged
 
 **Commit:** `refactor: rename package and schema setup file to hmso`
 
@@ -168,46 +168,46 @@
 
 ### Phase 5: Documentation & Config Files
 
-#### - [ ] Task 5.1: Update .kiro/steering/ files (15 files)
+#### - [x] Task 5.1: Update .kiro/steering/ files (15 files)
 **Delegate:** Sonnet
 **Path:** `.kiro/steering/`
 
 **Acceptance Criteria:**
-- [ ] All wa_intel → hmso, HMWAIntel → HMSO, wa-intel → hmso patterns applied
-- [ ] WA column names preserved
-- [ ] 15 files updated
+- [x] All wa_intel → hmso, HMWAIntel → HMSO, wa-intel → hmso patterns applied
+- [x] WA column names preserved
+- [x] 15 files updated
 
 **Commit:** `docs: update steering files from wa_intel to hmso naming`
 
-#### - [ ] Task 5.2: Update .kiro/prompts/ files (6 files)
+#### - [x] Task 5.2: Update .kiro/prompts/ files (6 files)
 **Delegate:** Sonnet
 **Path:** `.kiro/prompts/`
 
 **Acceptance Criteria:**
-- [ ] All naming patterns applied across 6 files
-- [ ] git.md confirmed as no changes needed
+- [x] All naming patterns applied across 6 files
+- [x] git.md confirmed as no changes needed
 
 **Commit:** `docs: update prompt files from wa_intel to hmso naming`
 
-#### - [ ] Task 5.3: Update .claude/commands/ files (4 files)
+#### - [x] Task 5.3: Update .claude/commands/ files (4 files)
 **Delegate:** Sonnet
 **Path:** `.claude/commands/`
 
 **Acceptance Criteria:**
-- [ ] All naming patterns applied across 4 files
+- [x] All naming patterns applied across 4 files
 
 **Commit:** `docs: update claude commands from wa_intel to hmso naming`
 
-#### - [ ] Task 5.4: Update .kiro/specs/ files (31+ files)
+#### - [x] Task 5.4: Update .kiro/specs/ files (31+ files)
 **Delegate:** Sonnet
 **Path:** `.kiro/specs/`
 
 **Acceptance Criteria:**
-- [ ] All naming patterns applied across active, completed, pending, and template specs
+- [x] All naming patterns applied across active, completed, pending, and template specs
 
 **Commit:** `docs: update spec files from wa_intel to hmso naming`
 
-#### - [ ] Task 5.5: Update root-level docs
+#### - [x] Task 5.5: Update root-level docs
 **Delegate:** Sonnet
 **Files:**
 - `README.md`
@@ -223,9 +223,9 @@
 - `listener/README.md`
 
 **Acceptance Criteria:**
-- [ ] All naming patterns applied
-- [ ] No remaining HMWAIntel, wa-intel, or wa_intel (schema context) references
-- [ ] WA column name references preserved
+- [x] All naming patterns applied
+- [x] No remaining HMWAIntel, wa-intel, or wa_intel (schema context) references
+- [x] WA column name references preserved
 
 **Commit:** `docs: update all documentation from wa_intel to hmso naming`
 

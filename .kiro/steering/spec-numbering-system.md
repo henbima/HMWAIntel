@@ -24,7 +24,7 @@ All spec folders MUST be numbered using our domain-based numbering system FROM C
 ## Before Creating Any New Spec — Follow This Exact Process:
 
 ### Step 1: Check Spec Registry FIRST
-- [ ] **Read `HMWAIntel/SPEC_REGISTRY.md`** to get next available number
+- [ ] **Read `HMSO/SPEC_REGISTRY.md`** to get next available number
 - [ ] **Identify the domain range** for your spec
 - [ ] **Reserve the number** by updating the registry
 
@@ -78,7 +78,7 @@ Required files:
 | **6xx** | Dashboard & UI | Frontend dashboard, visualization, UX | Check SPEC_REGISTRY |
 | **7xx** | Database & Performance | Schema fixes, indexes, performance optimization | Check SPEC_REGISTRY |
 
-**Always check `HMWAIntel/SPEC_REGISTRY.md` for the actual next available number.**
+**Always check `HMSO/SPEC_REGISTRY.md` for the actual next available number.**
 
 ---
 

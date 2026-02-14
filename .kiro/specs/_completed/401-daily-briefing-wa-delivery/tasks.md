@@ -56,7 +56,7 @@
 **File:** `listener/src/briefing-sender.ts`
 
 **Acceptance Criteria:**
-- [x] Polls `wa_intel.daily_briefings` for `sent_via='pending'`
+- [x] Polls `hmso.daily_briefings` for `sent_via='pending'`
 - [x] Sends briefing text via Baileys `sock.sendMessage()`
 - [x] Updates `sent_via='whatsapp'` and `sent_at=now()` after success
 - [x] Handles errors gracefully (logs, doesn't crash)
@@ -77,6 +77,6 @@
 ---
 
 ## Completion Checklist
-- [x] Verify via SQL: `SELECT sent_via, sent_at FROM wa_intel.daily_briefings` — new briefings show `'pending'` then `'whatsapp'` after listener sends
+- [x] Verify via SQL: `SELECT sent_via, sent_at FROM hmso.daily_briefings` — new briefings show `'pending'` then `'whatsapp'` after listener sends
 - [x] Verify cron job 12 no longer exists: `SELECT * FROM cron.job WHERE jobid = 12` returns empty
 - [x] Manual test: generate briefing → listener picks up → Hendra receives on WA

@@ -1,4 +1,4 @@
-# TECHNICAL_DEBT_REGISTRY — HMWAIntel (WhatsApp message intelligence platform for monitoring, classifying, and surfacing actionable insights)
+# TECHNICAL_DEBT_REGISTRY — HMSO (Signal operations platform for monitoring, classifying, and surfacing actionable insights)
 
 > Central registry for tracking technical debt.
 >

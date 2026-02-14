@@ -1,12 +1,16 @@
-Perform a self-review of the current changes against HMWAIntel's conventions. Check for these violations:
+Perform a self-review of the current changes against HMSO's conventions. Check for these violations:
+
+## Agent Delegation (Cost Optimization — MANDATORY)
+
+When running as Opus, delegate the entire review to a **Sonnet** subagent. Provide it the list of checks below and let it run all searches + produce the report. Opus only presents the final report to the user.
 
 ## Critical Constraint Checks
 
 ### 1. Schema Usage
-Search changed files for `supabase.from(` without `.schema('wa_intel')`:
+Search changed files for `supabase.from(` without `.schema('hmso')`:
 - Run: `git diff --name-only --diff-filter=AM | findstr ".tsx .ts"`
 - Check each file for raw `supabase.from('table')` calls
-- Correct: `supabase.schema('wa_intel').from('table')`
+- Correct: `supabase.schema('hmso').from('table')`
 - Exception: auth-related calls that use Supabase Auth API directly
 
 ### 2. TypeScript Safety
@@ -34,7 +38,7 @@ Check for hardcoded:
 
 ### 6. Migration Files
 If `supabase/migrations/` files were added:
-- Check tables use `wa_intel` schema (not `public`)
+- Check tables use `hmso` schema (not `public`)
 - Check RLS policies are included
 - Check UUID primary keys with `gen_random_uuid()`
 - Check proper grants to `authenticated`, `anon`, `service_role`

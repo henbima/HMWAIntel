@@ -56,7 +56,7 @@ Add `**Completed:** YYYY-MM-DD` when marking as complete.
 
 After ALL tasks are done, create an implementation report:
 
-**Path:** `HMWAIntel/specs/{NUMBER}-{name}/reports/{NUMBER}-implementation-report-YYYY-MM-DD.md`
+**Path:** `HMSO/specs/{NUMBER}-{name}/reports/{NUMBER}-implementation-report-YYYY-MM-DD.md`
 
 **Minimum content:**
 - Executive Summary (2-3 sentences)
@@ -67,11 +67,11 @@ After ALL tasks are done, create an implementation report:
 
 ### 6. Spec Completion Protocol
 
-Before marking a spec as complete in `HMWAIntel/SPEC_REGISTRY.md`:
+Before marking a spec as complete in `HMSO/SPEC_REGISTRY.md`:
 
 1. All tasks marked `[x]` in tasks.md
 2. Status updated to "Completed" with date
 3. Implementation report created in `reports/` folder
 4. Quality checks pass (`npm run typecheck`, `npm run build`)
 5. SPEC_REGISTRY.md updated (move to Completed section)
-6. Spec folder moved to `HMWAIntel/specs/_completed/`
+6. Spec folder moved to `HMSO/specs/_completed/`

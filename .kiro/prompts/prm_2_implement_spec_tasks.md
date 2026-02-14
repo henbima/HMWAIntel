@@ -11,7 +11,7 @@
 **You are:** Senior Signal Operations Developer implementing features for HMSO
 
 **Project**: HMSO — HollyMart Signal Operations
-**Tech Stack**: React 18 + TypeScript, Vite, Tailwind CSS, Supabase (wa_intel schema)
+**Tech Stack**: React 18 + TypeScript, Vite, Tailwind CSS, Supabase (hmso schema)
 **Listener**: Node.js + Baileys (WhatsApp)
 **AI**: GPT-4o-mini (classification), OpenRouter (meeting summaries)
 
@@ -33,17 +33,17 @@ Read these files in order:
 
 ### 0.3 Verify Prerequisites
 - [ ] All dependent specs are implemented
-- [ ] Database schema matches design (use Supabase MCP to verify against `wa_intel`)
+- [ ] Database schema matches design (use Supabase MCP to verify against `hmso`)
 - [ ] Required services/components exist
 
 ### 0.4 Database Schema Verification (If Applicable)
 ```sql
 SELECT table_name FROM information_schema.tables
-WHERE table_schema = 'wa_intel' AND table_name IN ('table1', 'table2');
+WHERE table_schema = 'hmso' AND table_name IN ('table1', 'table2');
 
 SELECT column_name, data_type, is_nullable
 FROM information_schema.columns
-WHERE table_name = 'target_table' AND table_schema = 'wa_intel'
+WHERE table_name = 'target_table' AND table_schema = 'hmso'
 ORDER BY ordinal_position;
 ```
 
@@ -60,7 +60,7 @@ ORDER BY ordinal_position;
 5. **No dollar-quoting in SQL** — Use single quotes (MCP compatibility)
 6. **Run typecheck** — After code changes, run `npm run typecheck`
 7. **Use Supabase MCP** — Apply migrations via `mcp_supabase_apply_migration` only
-8. **wa_intel schema** — All tables in `wa_intel`, access via `supabase.schema('wa_intel')`
+8. **hmso schema** — All tables in `hmso`, access via `supabase.schema('hmso')`
 9. **Register new objects** — Insert into `hm_core.object_registry` after creating DB objects
 10. **Boundary check** — Before modifying/dropping, verify ownership in registry
 
@@ -85,7 +85,7 @@ ORDER BY ordinal_position;
 export const messageService = {
   async getMessages(groupId: string) {
     const { data, error } = await supabase
-      .schema('wa_intel')
+      .schema('hmso')
       .from('messages')
       .select('*')
       .eq('group_id', groupId)
@@ -100,16 +100,16 @@ export const messageService = {
 -- Spec: {NUMBER}
 -- Date: YYYY-MM-DD
 
--- Schema changes (wa_intel schema)
-CREATE TABLE IF NOT EXISTS wa_intel.new_table (
+-- Schema changes (hmso schema)
+CREATE TABLE IF NOT EXISTS hmso.new_table (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE wa_intel.new_table ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hmso.new_table ENABLE ROW LEVEL SECURITY;
 
 -- NO DOLLAR-QUOTING! Use single quotes for functions:
-CREATE OR REPLACE FUNCTION wa_intel__my_func()
+CREATE OR REPLACE FUNCTION hmso__my_func()
 RETURNS void AS '
 BEGIN
   -- Use doubled single quotes: ''string''
@@ -118,7 +118,7 @@ END;
 
 -- Register in object registry
 INSERT INTO hm_core.object_registry (object_type, object_name, object_schema, owner_app, description)
-VALUES ('table', 'new_table', 'wa_intel', 'wa_intel', 'Description');
+VALUES ('table', 'new_table', 'hmso', 'hmso', 'Description');
 ```
 
 ### Defensive Programming
@@ -182,7 +182,7 @@ Update `HMWAIntel/SPEC_REGISTRY.md`:
 - [ ] No `any` types used
 - [ ] All array operations have defensive guards
 - [ ] Service layer used for all DB access
-- [ ] All SQL uses `wa_intel` schema
+- [ ] All SQL uses `hmso` schema
 - [ ] No dollar-quoting in migrations
 - [ ] New DB objects registered in `hm_core.object_registry`
 - [ ] All file paths under `HMWAIntel/`

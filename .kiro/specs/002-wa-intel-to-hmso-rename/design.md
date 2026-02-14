@@ -1,4 +1,4 @@
-# Spec 002: wa_intel → hmso Complete Rename — Design
+# Spec 002: hmso → hmso Complete Rename — Design
 
 ## Approach
 
@@ -8,42 +8,42 @@ This is a systematic find-and-replace across 5 layers, deployed in strict order.
 
 ### Phase 1: Database Migration (HIGHEST RISK)
 
-**Migration file:** `supabase/migrations/20260215000000_rename_wa_intel_to_hmso.sql`
+**Migration file:** `supabase/migrations/20260215000000_rename_hmso_to_hmso.sql`
 
 **Operations (executed via MCP in chunks):**
 
-1. **Schema rename:** `ALTER SCHEMA wa_intel RENAME TO hmso` — atomic, all objects move
+1. **Schema rename:** `ALTER SCHEMA hmso RENAME TO hmso` — atomic, all objects move
 2. **PostgREST update:** `ALTER ROLE authenticator SET pgrst.db_schemas TO '..., hmso'` + `NOTIFY pgrst, 'reload config'`
 3. **Recreate functions** with `hmso.table` references in bodies:
-   - `hmso.get_groups_with_today_stats()` — update all internal `wa_intel.` refs
-   - Rename `wa_intel__search_messages` → `search_messages` (drop old, create new)
+   - `hmso.get_groups_with_today_stats()` — update all internal `hmso.` refs
+   - Rename `hmso__search_messages` → `search_messages` (drop old, create new)
 4. **Recreate views:** `overdue_tasks`, `today_summary` — update schema refs in body
-5. **Cron jobs:** Unschedule `wa_intel_*`, reschedule as `hmso_*` with single-quote escaping
-6. **Object registry:** `UPDATE hm_core.object_registry SET owner_app = 'hmso' WHERE owner_app = 'wa_intel'`
+5. **Cron jobs:** Unschedule `hmso_*`, reschedule as `hmso_*` with single-quote escaping
+6. **Object registry:** `UPDATE hm_core.object_registry SET owner_app = 'hmso' WHERE owner_app = 'hmso'`
 
 **Risk mitigation:**
 - Function/view bodies are stored as text — must be recreated, not just renamed
 - Split into multiple `execute_sql` calls for MCP compatibility
 - No `$$` dollar-quoting anywhere
-- Rollback: `ALTER SCHEMA hmso RENAME TO wa_intel` + revert code
+- Rollback: `ALTER SCHEMA hmso RENAME TO hmso` + revert code
 
 ### Phase 2: Backend Code (5 edge functions + 4 listener files)
 
 **Edge Functions** — simple string replacement in each:
 | File | Change |
 |------|--------|
-| `supabase/functions/classify-messages/index.ts` | `schema: "wa_intel"` → `"hmso"` |
+| `supabase/functions/classify-messages/index.ts` | `schema: "hmso"` → `"hmso"` |
 | `supabase/functions/daily-briefing/index.ts` | same |
 | `supabase/functions/analyze-daily/index.ts` | same |
 | `supabase/functions/detect-task-completion/index.ts` | same |
-| `supabase/functions/import-whatsapp-chat/index.ts` | all `.schema("wa_intel")` calls |
+| `supabase/functions/import-whatsapp-chat/index.ts` | all `.schema("hmso")` calls |
 
 Also update AI system prompts where they say "WhatsApp business intelligence" → "organizational intelligence system (HMSO)".
 
 **Listener:**
 | File | Change |
 |------|--------|
-| `listener/src/supabase.ts` | `schema: 'wa_intel'` → `'hmso'` |
+| `listener/src/supabase.ts` | `schema: 'hmso'` → `'hmso'` |
 | `listener/src/briefing-sender.ts` | same |
 | `listener/package.json` | `"wa-intel-listener"` → `"hmso-listener"` |
 | `listener/ecosystem.config.cjs` | PM2 name `'wa-intel-listener'` → `'hmso-listener'` |
@@ -77,20 +77,20 @@ Also update AI system prompts where they say "WhatsApp business intelligence" �
 ### Phase 4: Config & Schema Reference File
 
 - `package.json`: `"name"` → `"hmso-dashboard"`
-- Rename `wa_intel_setup.sql` → `hmso_setup.sql` + update all internal `wa_intel` → `hmso`
+- Rename `hmso_setup.sql` → `hmso_setup.sql` + update all internal `hmso` → `hmso`
 
 ### Phase 5: Documentation (bulk find-replace)
 
 **Patterns applied globally:**
 | Old | New | Context |
 |-----|-----|---------|
-| `wa_intel` | `hmso` | Schema/code contexts (NOT `wa_jid` etc.) |
-| `HMWAIntel` | `HMSO` | Project name |
+| `hmso` | `hmso` | Schema/code contexts (NOT `wa_jid` etc.) |
+| `HMSO` | `HMSO` | Project name |
 | `wa-intel` | `hmso` | Kebab-case (package, server paths) |
 | `waIntel` | `hmso` | camelCase in code examples |
 | `"WhatsApp Intelligence"` | `"Signal Operations"` | Branding |
 | `"WA Intel"` | `"HMSO"` | Branding |
-| `wa_intel_setup.sql` | `hmso_setup.sql` | File reference |
+| `hmso_setup.sql` | `hmso_setup.sql` | File reference |
 | `wa-intel-listener` | `hmso-listener` | Process name |
 
 **File groups:**
@@ -114,5 +114,5 @@ Also update AI system prompts where they say "WhatsApp business intelligence" �
 
 ## Rollback Plan
 
-- **Before code deploy:** `ALTER SCHEMA hmso RENAME TO wa_intel` + don't deploy code
+- **Before code deploy:** `ALTER SCHEMA hmso RENAME TO hmso` + don't deploy code
 - **After code deploy:** Reverse schema rename + `git revert` + redeploy all services

@@ -18,7 +18,7 @@
 - Define in `src/modules/{module}/types/index.ts`
 
 **Implementation notes:**
-- Query `wa_intel.{table_name}` table
+- Query `hmso.{table_name}` table
 - Use same filtering pattern as {pattern service}
 - Return type: `ExampleRow[]`
 - Handle empty results with `(data || [])` guard

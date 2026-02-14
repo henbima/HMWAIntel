@@ -87,7 +87,7 @@ describe('Component/Service Name', () => {
 
 ### Testing Service Layer
 ```typescript
-// Mock Supabase client for wa_intel schema
+// Mock Supabase client for hmso schema
 const mockSupabase = {
   schema: vi.fn().mockReturnValue({
     from: vi.fn().mockReturnValue({
@@ -100,7 +100,7 @@ const mockSupabase = {
 }
 ```
 
-### Testing with wa_intel Types
+### Testing with HMSO Types
 ```typescript
 import type { Message, ClassifiedItem, Task } from '@/lib/types'
 

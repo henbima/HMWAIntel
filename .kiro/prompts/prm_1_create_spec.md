@@ -36,12 +36,12 @@ Run these queries via **Supabase MCP** to understand current state:
 ```sql
 -- Check if tables mentioned in requirement exist
 SELECT table_name FROM information_schema.tables
-WHERE table_schema = 'wa_intel' AND table_name = '{table_name}';
+WHERE table_schema = 'hmso' AND table_name = '{table_name}';
 
 -- Check column structure
 SELECT column_name, data_type, is_nullable
 FROM information_schema.columns
-WHERE table_name = '{table_name}' AND table_schema = 'wa_intel'
+WHERE table_name = '{table_name}' AND table_schema = 'hmso'
 ORDER BY ordinal_position;
 
 -- Check RLS policies
@@ -126,7 +126,7 @@ HMWAIntel/specs/{NUMBER}-{spec-name-kebab-case}/
 - [Explicitly excluded item 1]
 
 ## Dependencies
-- **Database Dependencies**: [Tables/columns in wa_intel schema]
+- **Database Dependencies**: [Tables/columns in hmso schema]
 - **Service Dependencies**: [Services required]
 - **External Dependencies**: [Listener, edge functions, APIs]
 
@@ -149,20 +149,20 @@ HMWAIntel/specs/{NUMBER}-{spec-name-kebab-case}/
 
 ## Database Changes (If Applicable)
 
-### New Tables (in wa_intel schema)
+### New Tables (in hmso schema)
 ```sql
-CREATE TABLE IF NOT EXISTS wa_intel.{table_name} (
+CREATE TABLE IF NOT EXISTS hmso.{table_name} (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   -- columns
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE wa_intel.{table_name} ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hmso.{table_name} ENABLE ROW LEVEL SECURITY;
 
 -- Register in object registry
 INSERT INTO hm_core.object_registry (object_type, object_name, object_schema, owner_app, description)
-VALUES ('table', '{table_name}', 'wa_intel', 'wa_intel', '{description}');
+VALUES ('table', '{table_name}', 'hmso', 'hmso', '{description}');
 ```
 
 ### Rollback Plan
@@ -178,7 +178,7 @@ VALUES ('table', '{table_name}', 'wa_intel', 'wa_intel', '{description}');
 
 ## Data Flow
 ```
-Signal Source → Listener/Ingestion → wa_intel.messages → Classification → Output
+Signal Source → Listener/Ingestion → hmso.messages → Classification → Output
 ```
 
 ## Error Handling
@@ -187,7 +187,7 @@ Signal Source → Listener/Ingestion → wa_intel.messages → Classification �
 
 ## Security Considerations
 - [ ] RLS policies defined
-- [ ] Boundary check (wa_intel ownership)
+- [ ] Boundary check (hmso ownership)
 - [ ] No hardcoded values
 ```
 
@@ -247,7 +247,7 @@ Signal Source → Listener/Ingestion → wa_intel.messages → Classification �
 - [ ] Problem statement is clear
 - [ ] Success criteria are measurable
 - [ ] All dependencies verified against actual DB/codebase
-- [ ] Database changes use `wa_intel` schema
+- [ ] Database changes use `hmso` schema
 - [ ] New objects registered in `hm_core.object_registry`
 - [ ] No dollar-quoting in SQL (MCP compatibility)
 - [ ] File paths use `HMWAIntel/` prefix

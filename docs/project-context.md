@@ -22,7 +22,7 @@ HollyMart Signal Operations — the organizational nervous system that captures,
 | Full-Text Search | PostgreSQL tsvector/tsquery (indonesian config) |
 | Auth | Supabase Auth (shared HollyMart instance) |
 | RBAC | hm_core schema |
-| Schema | `wa_intel` (legacy name, may migrate to `hmso` later) |
+| Schema | `hmso` |
 | WA Listener | Node.js + Baileys (WhatsApp Web API) |
 | Meeting Ingestion | n8n (self-hosted on VPS) — Zoom webhook → chunk → summarize |
 | AI Classification | OpenAI GPT-4o-mini via Supabase Edge Functions |

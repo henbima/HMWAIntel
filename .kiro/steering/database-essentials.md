@@ -32,10 +32,10 @@ last-updated: 2026-02-13
 
 | Aspect | Rule | Example |
 |--------|------|---------|
-| **Schema** | `wa_intel` (NOT `public`) | `wa_intel.messages` |
+| **Schema** | `hmso` (NOT `public`) | `hmso.messages` |
 | **Primary Keys** | Always UUID | `id UUID PRIMARY KEY DEFAULT gen_random_uuid()` |
 | **RLS** | Always ON | Every table has Row Level Security enabled |
-| **Access** | Use `.schema('wa_intel')` | `supabase.schema('wa_intel').from('tasks')` |
+| **Access** | Use `.schema('hmso')` | `supabase.schema('hmso').from('tasks')` |
 
 **Core Tables:**
 - **Messages**: `messages` (WhatsApp, meetings, future channels — `source_type` column)
@@ -52,7 +52,7 @@ last-updated: 2026-02-13
 -- 1. Verify table structure (ALWAYS run first)
 SELECT column_name, data_type, is_nullable
 FROM information_schema.columns
-WHERE table_name = 'your_table' AND table_schema = 'wa_intel'
+WHERE table_name = 'your_table' AND table_schema = 'hmso'
 ORDER BY ordinal_position;
 
 -- 2. Check RLS policies (when updates/inserts fail)
@@ -60,11 +60,11 @@ SELECT policyname, cmd, qual FROM pg_policies
 WHERE tablename = 'your_table';
 
 -- 3. Test data access (verify permissions)
-SELECT COUNT(*) FROM wa_intel.your_table;
+SELECT COUNT(*) FROM hmso.your_table;
 
--- 4. List all wa_intel tables
+-- 4. List all hmso tables
 SELECT table_name FROM information_schema.tables
-WHERE table_schema = 'wa_intel'
+WHERE table_schema = 'hmso'
 ORDER BY table_name;
 ```
 
@@ -80,7 +80,7 @@ ORDER BY table_name;
 ```sql
 SELECT column_name, data_type, is_nullable, column_default
 FROM information_schema.columns
-WHERE table_name = 'target_table' AND table_schema = 'wa_intel'
+WHERE table_name = 'target_table' AND table_schema = 'hmso'
 ORDER BY ordinal_position;
 ```
 
@@ -88,7 +88,7 @@ ORDER BY ordinal_position;
 ```sql
 SELECT constraint_name, constraint_type
 FROM information_schema.table_constraints
-WHERE table_name = 'target_table' AND table_schema = 'wa_intel';
+WHERE table_name = 'target_table' AND table_schema = 'hmso';
 ```
 
 #### Step 3: Verify Foreign Keys
@@ -116,10 +116,10 @@ AND kcu.constraint_name IN (
 
 ```sql
 -- 1. Enable RLS
-ALTER TABLE wa_intel.your_table ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hmso.your_table ENABLE ROW LEVEL SECURITY;
 
 -- 2. Authenticated users: scoped access
-CREATE POLICY "authenticated_access" ON wa_intel.your_table
+CREATE POLICY "authenticated_access" ON hmso.your_table
 FOR SELECT USING (auth.uid() IS NOT NULL);
 
 -- 3. Service role: full access
@@ -149,7 +149,7 @@ SELECT auth.uid(), auth.role();
 ```sql
 SELECT column_name, data_type
 FROM information_schema.columns
-WHERE table_name = 'target_table' AND table_schema = 'wa_intel';
+WHERE table_name = 'target_table' AND table_schema = 'hmso';
 ```
 
 2. **RLS Policy Check** (CRITICAL for UPDATE/INSERT failures)
@@ -167,7 +167,7 @@ SELECT auth.uid(), auth.role();
 ```sql
 SELECT constraint_name, constraint_type
 FROM information_schema.table_constraints
-WHERE table_name = 'target_table' AND table_schema = 'wa_intel';
+WHERE table_name = 'target_table' AND table_schema = 'hmso';
 ```
 
 5. **Application Layer** (ONLY AFTER DATABASE VERIFIED)
@@ -180,7 +180,7 @@ WHERE table_name = 'target_table' AND table_schema = 'wa_intel';
 | INSERT returns error | Column doesn't exist | Verify schema |
 | SELECT returns empty | RLS policy too restrictive | Check user role |
 | Foreign key error | Referenced record missing | Check related table |
-| Schema not found | Wrong schema name | Verify using `wa_intel` |
+| Schema not found | Wrong schema name | Verify using `hmso` |
 
 ---
 
@@ -192,7 +192,7 @@ WHERE table_name = 'target_table' AND table_schema = 'wa_intel';
 -- Check existing indexes
 SELECT indexname, indexdef
 FROM pg_indexes
-WHERE schemaname = 'wa_intel' AND tablename = 'your_table';
+WHERE schemaname = 'hmso' AND tablename = 'your_table';
 
 -- Check index usage
 SELECT
@@ -200,7 +200,7 @@ SELECT
   idx_scan as index_scans,
   idx_tup_read as tuples_read
 FROM pg_stat_user_indexes
-WHERE schemaname = 'wa_intel'
+WHERE schemaname = 'hmso'
 ORDER BY idx_scan ASC;
 ```
 
@@ -208,15 +208,15 @@ ORDER BY idx_scan ASC;
 ```sql
 -- Messages by group and date (most common query)
 CREATE INDEX IF NOT EXISTS idx_messages_group_date
-ON wa_intel.messages(group_id, created_at DESC);
+ON hmso.messages(group_id, created_at DESC);
 
 -- Messages by source type
 CREATE INDEX IF NOT EXISTS idx_messages_source_type
-ON wa_intel.messages(source_type, created_at DESC);
+ON hmso.messages(source_type, created_at DESC);
 
 -- Classified items by type and date
 CREATE INDEX IF NOT EXISTS idx_classified_items_type_date
-ON wa_intel.classified_items(classification_type, created_at DESC);
+ON hmso.classified_items(classification_type, created_at DESC);
 ```
 
 ---
