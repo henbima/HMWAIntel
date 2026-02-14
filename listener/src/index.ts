@@ -29,6 +29,7 @@ async function startListener() {
   logger.info('Starting WA Intel Listener...');
   logger.info({ supabaseUrl: config.supabaseUrl, hendraJid: config.hendraJid }, 'Config loaded');
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
   const { version } = await fetchLatestBaileysVersion();
 
@@ -38,9 +39,11 @@ async function startListener() {
     version,
     auth: {
       creds: state.creds,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       keys: makeCacheableSignalKeyStore(state.keys, logger as any),
     },
     printQRInTerminal: false,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     logger: logger as any,
     generateHighQualityLinkPreview: false,
     syncFullHistory: false,
@@ -149,10 +152,17 @@ async function startListener() {
   });
 
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
-    if (type !== 'notify') return;
+    // Log ALL upsert events including type
+    logger.info({ type, count: messages.length }, 'messages.upsert event');
 
     for (const msg of messages) {
       try {
+        const jid = msg.key?.remoteJid || 'unknown';
+        const jidType = jid.includes('@g.us') ? 'group' : jid.includes('@s.whatsapp.net') ? 'personal' : jid.includes('@lid') ? 'lid' : jid.includes('@broadcast') ? 'broadcast' : 'other';
+        logger.info({ jid, jidType, upsertType: type, fromMe: msg.key?.fromMe, hasMessage: !!msg.message, stubType: msg.messageStubType || null }, 'RAW message received');
+
+        if (type !== 'notify' && type !== 'append') continue;
+
         await handleMessage(msg);
       } catch (err) {
         logger.error({ err, msgId: msg.key?.id }, 'Unhandled error processing message');

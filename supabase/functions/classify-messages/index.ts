@@ -10,10 +10,8 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const BATCH_SIZE = 5;
 const MAX_MESSAGES_PER_RUN = 30;
 const CONVERSATION_TIMEOUT_MINUTES = 30;
-const CONVERSATION_WINDOW_HOURS = 2;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   db: { schema: "hmso" },

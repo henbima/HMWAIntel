@@ -8,7 +8,7 @@ import { CategoryFilter } from '../components/CategoryFilter';
 import { CategoryPicker } from '../components/CategoryPicker';
 import { CategoryManager } from '../components/CategoryManager';
 import { useGroupCategories } from '../hooks/useGroupCategories';
-import { updateGroupCategory } from '../services/group-category-service';
+import { updateGroupCategory, type GroupCategory } from '../services/group-category-service';
 import { hmso } from '../lib/supabase';
 import type { Group, Message, ClassifiedItem } from '../lib/types';
 
@@ -398,7 +398,7 @@ function GroupGrid({
   viewMode: 'grid' | 'list';
   onSelect: (group: GroupWithStats) => void;
   onToggleStar: (e: React.MouseEvent, group: GroupWithStats) => void;
-  categoryMap: Record<string, any>;
+  categoryMap: Record<string, GroupCategory>;
 }) {
   if (viewMode === 'list') {
     return (
@@ -472,7 +472,7 @@ function GroupCard({
   group: GroupWithStats;
   onSelect: (group: GroupWithStats) => void;
   onToggleStar: (e: React.MouseEvent, group: GroupWithStats) => void;
-  categoryMap: Record<string, any>;
+  categoryMap: Record<string, GroupCategory>;
 }) {
   const hasActivity = group.today_message_count > 0;
 
@@ -567,7 +567,7 @@ function GroupDetail({
   loadingMore: boolean;
   onLoadMore: () => void;
   onToggleStar: (e: React.MouseEvent) => void;
-  categoryMap: Record<string, any>;
+  categoryMap: Record<string, GroupCategory>;
   onCategoryChange: (categoryId: string) => void;
 }) {
   const importantMessages = messages.filter(

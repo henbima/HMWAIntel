@@ -377,8 +377,7 @@ function buildClassificationPrompt(
   groupName: string,
   topicLabel: string,
   date: string,
-  messages: MessageRow[],
-  keyParticipants: string[]
+  messages: MessageRow[]
 ): string {
   const participantsWithRoles = messages
     .reduce((acc: string[], msg) => {
@@ -456,15 +455,13 @@ async function classifyTopic(
   groupName: string,
   topicLabel: string,
   date: string,
-  topicMessages: MessageRow[],
-  keyParticipants: string[]
+  topicMessages: MessageRow[]
 ): Promise<TopicClassification> {
   const prompt = buildClassificationPrompt(
     groupName,
     topicLabel,
     date,
-    topicMessages,
-    keyParticipants
+    topicMessages
   );
   const content = await aiProvider.classify(CLASSIFICATION_SYSTEM_PROMPT, prompt);
 
@@ -717,8 +714,7 @@ async function classifyStandaloneMessages(
         group.name,
         syntheticTopic.label,
         dateStr,
-        [msg],
-        syntheticTopic.key_participants
+        [msg]
       );
 
       const topicId = await saveDailyTopic(
@@ -967,8 +963,7 @@ Deno.serve(async (req: Request) => {
               group.name,
               topic.label,
               dateStr,
-              topicMessages,
-              topic.key_participants
+              topicMessages
             );
 
             const topicId = await saveDailyTopic(

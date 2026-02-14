@@ -1,3 +1,5 @@
+Always use haiku model to do commit
+
 Create a commit for the current changes. Follow this exact process:
 
 1. First, run quality checks:

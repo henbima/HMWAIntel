@@ -6,6 +6,7 @@ export interface Group {
   is_active: boolean;
   is_starred: boolean;
   participant_count: number;
+  category_id: string | null;
   created_at: string;
   updated_at: string;
 }

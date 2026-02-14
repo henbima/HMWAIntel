@@ -93,8 +93,8 @@ function parseTimestamp(datePart: string, timePart: string): Date {
     return new Date(NaN);
   }
 
-  let month = dateParts[0];
-  let day = dateParts[1];
+  const month = dateParts[0];
+  const day = dateParts[1];
   let year = dateParts[2];
 
   if (year.length === 2) {
@@ -131,7 +131,7 @@ Deno.serve(async (req: Request) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { chatText, groupName, skipClassification = false }: ImportRequest = await req.json();
+    const { chatText, groupName }: ImportRequest = await req.json();
 
     if (!chatText || !groupName) {
       return new Response(

@@ -12,7 +12,7 @@
 ## 0) PROJECT IDENTITY
 
 - **Nama project:** HMSO — HollyMart Signal Operations
-- **Internal codename (database schema):** `wa_intel` (legacy name, may migrate to `hmso` later)
+- **Database schema:** `hmso`
 - **Owner:** Hendra Rusly — CEO & Lead Developer, HollyMart
 - **Status:** ✅ OPERATIONAL — Listener running 24/7 on VPS (Biznet NEO Lite), 18,500+ messages captured, 299 groups synced, 11,900+ contacts auto-discovered.
 
@@ -97,7 +97,7 @@ Berikut keputusan arsitektur yang sudah diambil melalui diskusi mendalam. JANGAN
 | Keputusan | Pilihan | Alasan |
 |---|---|---|
 | **Project name** | HMSO — HollyMart Signal Operations | Source-agnostic. Part of HM ecosystem (HMCS, HMLS, HMBI, HMSO). |
-| **Database schema** | `wa_intel` (legacy, may migrate to `hmso` later) | Schema sudah ada dan operational. Rename nanti. Kode boleh pakai alias/constant. |
+| **Database schema** | `hmso` | Schema sudah ada dan operational. |
 | **Pipeline design** | Source-agnostic: Capture → Classify → Surface → Archive | Adding new input source = adding new ingestion module, NOT rebuilding pipeline. |
 | **WA Gateway** | Baileys (@whiskeysockets/baileys) | Open source, TypeScript, no browser needed, community besar |
 | **Meeting transcript ingestion** | n8n (self-hosted on VPS) or Make.com | Zoom webhook → chunk transcript → AI summarize → INSERT to database. n8n preferred (already have VPS). |
@@ -135,7 +135,7 @@ Berikut keputusan arsitektur yang sudah diambil melalui diskusi mendalam. JANGAN
 │         │                │                │                      │
 │         ▼                ▼                ▼                      │
 │  ┌──────────────────────────────────────────────────────┐       │
-│  │  Supabase Database — schema: wa_intel                 │       │
+│  │  Supabase Database — schema: hmso                     │       │
 │  │  messages (source_type: 'whatsapp' | 'meeting')       │       │
 │  │  meetings (full transcripts + executive summaries)    │       │
 │  │  classified_items | tasks | directions                │       │
@@ -169,7 +169,7 @@ Berikut keputusan arsitektur yang sudah diambil melalui diskusi mendalam. JANGAN
 [Baileys Listener — VPS Biznet NEO Lite, PM2]
     │
     ▼ (INSERT with source_type='whatsapp')
-[Supabase — wa_intel.messages]
+[Supabase — hmso.messages]
     │
     ▼ (pg_cron every 15 min)
 [AI Classifier — Edge Function, GPT-4o-mini]
@@ -196,10 +196,10 @@ Berikut keputusan arsitektur yang sudah diambil melalui diskusi mendalam. JANGAN
     ├─ 3. For each chunk: AI summarize via OpenRouter (premium model)
     │     Extract: decisions, tasks, directions, open questions
     │
-    ├─ 4. INSERT chunk summaries into wa_intel.messages
+    ├─ 4. INSERT chunk summaries into hmso.messages
     │     (source_type='meeting', meeting_metadata={...})
     │
-    ├─ 5. INSERT full record into wa_intel.meetings
+    ├─ 5. INSERT full record into hmso.meetings
     │     (raw transcript + executive summary + metadata)
     │
     └─ 6. Existing pipeline takes over automatically
@@ -324,7 +324,7 @@ CREATE SCHEMA IF NOT EXISTS wa_intel;
 -- TABLE 1: groups
 -- Daftar WhatsApp groups yang di-monitor
 -- ============================================
-CREATE TABLE wa_intel.groups (
+CREATE TABLE hmso.groups (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     wa_group_id TEXT UNIQUE NOT NULL,        -- WhatsApp group JID (e.g., "120363xxx@g.us")
     name TEXT NOT NULL,                       -- Nama grup (e.g., "HollyMart Bima-1")
@@ -340,7 +340,7 @@ CREATE TABLE wa_intel.groups (
 -- Registry orang-orang HollyMart — siapa mereka, apa jabatannya
 -- AI classifier MEMBUTUHKAN data ini untuk konteks
 -- ============================================
-CREATE TABLE wa_intel.contacts (
+CREATE TABLE hmso.contacts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     wa_jid TEXT UNIQUE NOT NULL,              -- WhatsApp JID (e.g., "628123456789@s.whatsapp.net")
     phone_number TEXT,                        -- Nomor HP bersih (e.g., "628123456789")
@@ -357,17 +357,17 @@ CREATE TABLE wa_intel.contacts (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_contacts_jid ON wa_intel.contacts(wa_jid);
-CREATE INDEX idx_contacts_location ON wa_intel.contacts(location);
+CREATE INDEX idx_contacts_jid ON hmso.contacts(wa_jid);
+CREATE INDEX idx_contacts_location ON hmso.contacts(location);
 
 -- ============================================
 -- TABLE 3: group_members
 -- Siapa saja anggota tiap grup — many-to-many
 -- ============================================
-CREATE TABLE wa_intel.group_members (
+CREATE TABLE hmso.group_members (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    group_id UUID REFERENCES wa_intel.groups(id) ON DELETE CASCADE,
-    contact_id UUID REFERENCES wa_intel.contacts(id) ON DELETE CASCADE,
+    group_id UUID REFERENCES hmso.groups(id) ON DELETE CASCADE,
+    contact_id UUID REFERENCES hmso.contacts(id) ON DELETE CASCADE,
     wa_role TEXT DEFAULT 'member',            -- 'admin' / 'superadmin' / 'member'
     joined_at TIMESTAMPTZ,
     is_active BOOLEAN DEFAULT true,
@@ -378,21 +378,21 @@ CREATE TABLE wa_intel.group_members (
 -- TABLE 4: messages
 -- Raw messages dari SEMUA sumber — WhatsApp, meeting transcripts, future channels
 -- ============================================
-CREATE TABLE wa_intel.messages (
+CREATE TABLE hmso.messages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     source_type TEXT NOT NULL DEFAULT 'whatsapp',  -- 'whatsapp' / 'meeting' / future: 'email', 'hmcs_note'
     wa_message_id TEXT UNIQUE,                -- WhatsApp message ID (null for non-WA sources)
-    group_id UUID REFERENCES wa_intel.groups(id),
+    group_id UUID REFERENCES hmso.groups(id),
     wa_group_id TEXT,                         -- WhatsApp group JID (null for non-WA sources)
     sender_jid TEXT,                          -- Sender WhatsApp JID (null for non-WA sources)
     sender_name TEXT,                         -- Push name / display name / speaker name
-    contact_id UUID REFERENCES wa_intel.contacts(id),
+    contact_id UUID REFERENCES hmso.contacts(id),
     message_text TEXT,                        -- Isi pesan (teks) atau chunk summary (meeting)
     message_type TEXT DEFAULT 'text',         -- text / image / video / audio / document / sticker / meeting_chunk
     media_url TEXT,                           -- URL media jika ada
     is_from_hendra BOOLEAN DEFAULT false,     -- Flag: apakah pesan/keputusan dari Hendra
     quoted_message_id TEXT,                   -- Jika reply ke pesan lain (WA only)
-    meeting_id UUID REFERENCES wa_intel.meetings(id),  -- Link ke meeting record (meeting source only)
+    meeting_id UUID REFERENCES hmso.meetings(id),  -- Link ke meeting record (meeting source only)
     meeting_metadata JSONB,                   -- { chunk_index, total_chunks, start_time, end_time, speakers[] }
     timestamp TIMESTAMPTZ NOT NULL,           -- Waktu pesan dikirim / meeting chunk timestamp
     raw_data JSONB,                           -- Raw message object (Baileys for WA, transcript chunk for meeting)
@@ -400,19 +400,19 @@ CREATE TABLE wa_intel.messages (
 );
 
 -- Index untuk query umum
-CREATE INDEX idx_messages_group_time ON wa_intel.messages(wa_group_id, timestamp DESC);
-CREATE INDEX idx_messages_sender ON wa_intel.messages(sender_jid);
-CREATE INDEX idx_messages_from_hendra ON wa_intel.messages(is_from_hendra) WHERE is_from_hendra = true;
-CREATE INDEX idx_messages_timestamp ON wa_intel.messages(timestamp DESC);
-CREATE INDEX idx_messages_source_type ON wa_intel.messages(source_type);
-CREATE INDEX idx_messages_meeting_id ON wa_intel.messages(meeting_id) WHERE meeting_id IS NOT NULL;
+CREATE INDEX idx_messages_group_time ON hmso.messages(wa_group_id, timestamp DESC);
+CREATE INDEX idx_messages_sender ON hmso.messages(sender_jid);
+CREATE INDEX idx_messages_from_hendra ON hmso.messages(is_from_hendra) WHERE is_from_hendra = true;
+CREATE INDEX idx_messages_timestamp ON hmso.messages(timestamp DESC);
+CREATE INDEX idx_messages_source_type ON hmso.messages(source_type);
+CREATE INDEX idx_messages_meeting_id ON hmso.messages(meeting_id) WHERE meeting_id IS NOT NULL;
 
 -- ============================================
 -- TABLE 4b: meetings
 -- Full meeting records — one row per Zoom/offline meeting
 -- Chunks are stored in messages table with source_type='meeting'
 -- ============================================
-CREATE TABLE wa_intel.meetings (
+CREATE TABLE hmso.meetings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     zoom_meeting_id TEXT,                     -- Zoom meeting UUID (null for non-Zoom meetings)
     title TEXT NOT NULL,                      -- Meeting title (e.g., "Rapat Koordinasi Bulanan Feb 2026")
@@ -428,16 +428,16 @@ CREATE TABLE wa_intel.meetings (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_meetings_date ON wa_intel.meetings(meeting_date DESC);
-CREATE INDEX idx_meetings_zoom_id ON wa_intel.meetings(zoom_meeting_id) WHERE zoom_meeting_id IS NOT NULL;
+CREATE INDEX idx_meetings_date ON hmso.meetings(meeting_date DESC);
+CREATE INDEX idx_meetings_zoom_id ON hmso.meetings(zoom_meeting_id) WHERE zoom_meeting_id IS NOT NULL;
 
 -- ============================================
 -- TABLE 5: classified_items
 -- Hasil klasifikasi AI dari setiap pesan
 -- ============================================
-CREATE TABLE wa_intel.classified_items (
+CREATE TABLE hmso.classified_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    message_id UUID REFERENCES wa_intel.messages(id) ON DELETE CASCADE,
+    message_id UUID REFERENCES hmso.messages(id) ON DELETE CASCADE,
     classification TEXT NOT NULL,             -- 'task' / 'direction' / 'report' / 'question' / 'coordination' / 'noise'
     confidence REAL,                          -- 0.0 - 1.0 confidence score dari AI
     summary TEXT,                             -- Ringkasan 1-2 kalimat dari AI
@@ -452,17 +452,17 @@ CREATE TABLE wa_intel.classified_items (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_classified_type ON wa_intel.classified_items(classification);
-CREATE INDEX idx_classified_time ON wa_intel.classified_items(classified_at DESC);
+CREATE INDEX idx_classified_type ON hmso.classified_items(classification);
+CREATE INDEX idx_classified_time ON hmso.classified_items(classified_at DESC);
 
 -- ============================================
 -- TABLE 6: tasks
 -- Task yang di-extract dari WA, di-track statusnya
 -- ============================================
-CREATE TABLE wa_intel.tasks (
+CREATE TABLE hmso.tasks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    classified_item_id UUID REFERENCES wa_intel.classified_items(id),
-    source_message_id UUID REFERENCES wa_intel.messages(id),
+    classified_item_id UUID REFERENCES hmso.classified_items(id),
+    source_message_id UUID REFERENCES hmso.messages(id),
     title TEXT NOT NULL,                      -- Judul task (dari AI summary)
     description TEXT,                         -- Detail lengkap
     assigned_to TEXT,                         -- Siapa yang harus kerjakan
@@ -472,41 +472,41 @@ CREATE TABLE wa_intel.tasks (
     priority TEXT DEFAULT 'normal',           -- 'urgent' / 'high' / 'normal' / 'low'
     deadline TIMESTAMPTZ,
     completed_at TIMESTAMPTZ,
-    completion_message_id UUID REFERENCES wa_intel.messages(id),  -- Pesan konfirmasi selesai
+    completion_message_id UUID REFERENCES hmso.messages(id),  -- Pesan konfirmasi selesai
     days_without_response INTEGER DEFAULT 0,  -- Berapa hari tanpa response
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_tasks_status ON wa_intel.tasks(status);
-CREATE INDEX idx_tasks_assigned ON wa_intel.tasks(assigned_to);
+CREATE INDEX idx_tasks_status ON hmso.tasks(status);
+CREATE INDEX idx_tasks_assigned ON hmso.tasks(assigned_to);
 
 -- ============================================
 -- TABLE 7: directions
 -- Arahan dari Hendra — knowledge base
 -- ============================================
-CREATE TABLE wa_intel.directions (
+CREATE TABLE hmso.directions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    source_message_id UUID REFERENCES wa_intel.messages(id),
+    source_message_id UUID REFERENCES hmso.messages(id),
     title TEXT NOT NULL,                      -- Judul arahan (dari AI summary)
     content TEXT NOT NULL,                    -- Isi lengkap arahan
     topic TEXT,                               -- Topik (e.g., "kebijakan retur", "promo ramadan")
     group_name TEXT,                          -- Dari grup mana
     target_audience TEXT,                     -- Untuk siapa (e.g., "semua store manager", "tim purchasing")
     is_still_valid BOOLEAN DEFAULT true,      -- Apakah arahan masih berlaku
-    superseded_by UUID REFERENCES wa_intel.directions(id),  -- Jika di-update oleh arahan baru
+    superseded_by UUID REFERENCES hmso.directions(id),  -- Jika di-update oleh arahan baru
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_directions_topic ON wa_intel.directions(topic);
-CREATE INDEX idx_directions_valid ON wa_intel.directions(is_still_valid) WHERE is_still_valid = true;
+CREATE INDEX idx_directions_topic ON hmso.directions(topic);
+CREATE INDEX idx_directions_valid ON hmso.directions(is_still_valid) WHERE is_still_valid = true;
 
 -- ============================================
 -- TABLE 8: daily_briefings
 -- Log daily briefing yang sudah dikirim
 -- ============================================
-CREATE TABLE wa_intel.daily_briefings (
+CREATE TABLE hmso.daily_briefings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     briefing_date DATE NOT NULL UNIQUE,
     summary_text TEXT NOT NULL,               -- Isi briefing yang dikirim
@@ -526,7 +526,7 @@ CREATE TABLE wa_intel.daily_briefings (
 -- CATATAN: Enable pgvector extension dulu di Supabase Dashboard
 -- CREATE EXTENSION IF NOT EXISTS vector;
 
--- CREATE TABLE wa_intel.embeddings (
+-- CREATE TABLE hmso.embeddings (
 --     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 --     source_type TEXT NOT NULL,              -- 'direction' / 'task' / 'message'
 --     source_id UUID NOT NULL,                -- ID dari tabel sumber
@@ -535,43 +535,43 @@ CREATE TABLE wa_intel.daily_briefings (
 --     metadata JSONB,                         -- Extra info: group, sender, topic, date
 --     created_at TIMESTAMPTZ DEFAULT now()
 -- );
--- CREATE INDEX idx_embeddings_source ON wa_intel.embeddings(source_type, source_id);
+-- CREATE INDEX idx_embeddings_source ON hmso.embeddings(source_type, source_id);
 
 -- ============================================
 -- VIEWS — untuk kemudahan query
 -- ============================================
 
 -- View: Tasks yang overdue (belum done, sudah > 3 hari)
-CREATE OR REPLACE VIEW wa_intel.overdue_tasks AS
+CREATE OR REPLACE VIEW hmso.overdue_tasks AS
 SELECT
     t.*,
     m.message_text AS original_message,
     EXTRACT(DAY FROM now() - t.created_at) AS days_open
-FROM wa_intel.tasks t
-LEFT JOIN wa_intel.messages m ON m.id = t.source_message_id
+FROM hmso.tasks t
+LEFT JOIN hmso.messages m ON m.id = t.source_message_id
 WHERE t.status NOT IN ('done', 'cancelled')
 AND t.created_at < now() - INTERVAL '3 days';
 
 -- View: Ringkasan per grup hari ini
-CREATE OR REPLACE VIEW wa_intel.today_summary AS
+CREATE OR REPLACE VIEW hmso.today_summary AS
 SELECT
     g.name AS group_name,
     COUNT(m.id) AS total_messages,
     COUNT(ci.id) FILTER (WHERE ci.classification = 'task') AS task_count,
     COUNT(ci.id) FILTER (WHERE ci.classification = 'direction') AS direction_count,
     COUNT(ci.id) FILTER (WHERE ci.classification = 'report') AS report_count
-FROM wa_intel.groups g
-LEFT JOIN wa_intel.messages m ON m.wa_group_id = g.wa_group_id
+FROM hmso.groups g
+LEFT JOIN hmso.messages m ON m.wa_group_id = g.wa_group_id
     AND m.timestamp >= CURRENT_DATE
-LEFT JOIN wa_intel.classified_items ci ON ci.message_id = m.id
+LEFT JOIN hmso.classified_items ci ON ci.message_id = m.id
 GROUP BY g.name;
 
 -- ============================================
 -- RLS (Row Level Security) — optional
 -- Untuk dashboard authentication nanti
 -- ============================================
--- ALTER TABLE wa_intel.messages ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE wa_intel.tasks ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE hmso.messages ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE hmso.tasks ENABLE ROW LEVEL SECURITY;
 -- (implement RLS policies sesuai kebutuhan)
 ```
 
@@ -589,17 +589,17 @@ GROUP BY g.name;
 
 **Input:** WhatsApp WebSocket events (messages.upsert)
 
-**Output:** INSERT ke wa_intel.messages
+**Output:** INSERT ke hmso.messages
 
 **Key behaviors:**
 - Scan QR code satu kali untuk authenticate
 - Persist auth state ke filesystem (auth_info/ folder) — supaya tidak perlu scan ulang setiap restart
 - Listen event `messages.upsert` — setiap pesan baru dari grup manapun
 - Parse: sender JID, sender push name, group JID, message text, timestamp, message type
-- **Resolve contact:** lookup sender_jid di wa_intel.contacts → get contact_id, role, location. Jika belum ada, auto-create contact entry dengan JID dan push name (jabatan diisi manual nanti).
+- **Resolve contact:** lookup sender_jid di hmso.contacts → get contact_id, role, location. Jika belum ada, auto-create contact entry dengan JID dan push name (jabatan diisi manual nanti).
 - Flag `is_from_hendra` berdasarkan JID Hendra (hardcode atau config)
-- INSERT ke Supabase `wa_intel.messages` (termasuk contact_id)
-- **Saat startup:** fetch metadata semua grup → upsert wa_intel.groups + wa_intel.group_members
+- INSERT ke Supabase `hmso.messages` (termasuk contact_id)
+- **Saat startup:** fetch metadata semua grup → upsert hmso.groups + hmso.group_members
 - **Listen event `group-participants.update`** → auto-update group_members ketika ada join/leave
 - Auto-reconnect jika connection drop (Baileys handle ini, tapi tambah retry logic)
 - JANGAN reply atau kirim pesan apapun (read-only) — kecuali Module 4 (daily briefing, nanti)
@@ -656,9 +656,9 @@ GROUP BY g.name;
 
 **Tech:** Supabase Edge Function ATAU external Node.js script (cron-based)
 
-**Input:** Pesan baru dari wa_intel.messages (trigger: DB webhook atau cron per 15 menit)
+**Input:** Pesan baru dari hmso.messages (trigger: DB webhook atau cron per 15 menit)
 
-**Output:** INSERT ke wa_intel.classified_items + INSERT ke wa_intel.tasks (jika task) + INSERT ke wa_intel.directions (jika direction dari Hendra)
+**Output:** INSERT ke hmso.classified_items + INSERT ke hmso.tasks (jika task) + INSERT ke hmso.directions (jika direction dari Hendra)
 
 **AI Prompt Template:**
 
@@ -749,7 +749,7 @@ Respond dalam JSON format SAJA, tanpa markdown:
 
 **Tech:** Supabase Edge Function (generate) + pg_cron (schedule) + Baileys send (deliver)
 
-**Input:** Query wa_intel.classified_items, wa_intel.tasks, wa_intel.directions dari 24 jam terakhir
+**Input:** Query hmso.classified_items, hmso.tasks, hmso.directions dari 24 jam terakhir
 
 **Delivery strategy (FINAL DECISION):**
 - **Now:** WhatsApp to self — secondary number (listener) sends 1 message/day to Hendra's primary number.
@@ -824,7 +824,7 @@ SELECT cron.schedule('daily-briefing', '0 23 * * *',
 1. **Kanban Board** (/tasks)
    - 4 kolom: New → In Progress → Stuck/Overdue → Done
    - Card: judul task, assigned_to, grup asal, tanggal
-   - Drag & drop untuk update status (update wa_intel.tasks)
+   - Drag & drop untuk update status (update hmso.tasks)
    - Filter: by group, by assigned_to, by date range
 
 2. **Direction Log** (/directions)
@@ -858,21 +858,21 @@ SELECT cron.schedule('daily-briefing', '0 23 * * *',
 
 ```sql
 -- Add search index to messages table
-ALTER TABLE wa_intel.messages ADD COLUMN search_vector tsvector
+ALTER TABLE hmso.messages ADD COLUMN search_vector tsvector
   GENERATED ALWAYS AS (
     to_tsvector('indonesian', COALESCE(body, '') || ' ' || COALESCE(sender_name, ''))
   ) STORED;
 
-CREATE INDEX idx_messages_search ON wa_intel.messages USING GIN(search_vector);
+CREATE INDEX idx_messages_search ON hmso.messages USING GIN(search_vector);
 
 -- Search function
-CREATE OR REPLACE FUNCTION wa_intel.search_messages(query text, limit_count int DEFAULT 20)
+CREATE OR REPLACE FUNCTION hmso.search_messages(query text, limit_count int DEFAULT 20)
 RETURNS TABLE(id uuid, body text, sender_name text, group_name text, created_at timestamptz, relevance float)
 AS $$
   SELECT m.id, m.body, m.sender_name, g.name as group_name, m.created_at,
          ts_rank(m.search_vector, websearch_to_tsquery('indonesian', query)) as relevance
-  FROM wa_intel.messages m
-  LEFT JOIN wa_intel.groups g ON m.group_id = g.id
+  FROM hmso.messages m
+  LEFT JOIN hmso.groups g ON m.group_id = g.id
   WHERE m.search_vector @@ websearch_to_tsquery('indonesian', query)
   ORDER BY relevance DESC
   LIMIT limit_count;
@@ -949,7 +949,7 @@ n8n Workflow:
     ├── Step 2: Fetch full transcript from Zoom API
     │   GET /meetings/{meetingId}/recordings → download transcript (.vtt or .txt)
     │
-    ├── Step 3: INSERT meeting record into wa_intel.meetings
+    ├── Step 3: INSERT meeting record into hmso.meetings
     │   { title, date, duration, participants, raw_transcript, source='zoom' }
     │   Returns: meeting_id (UUID)
     │
@@ -980,7 +980,7 @@ n8n Workflow:
     │   Return as structured JSON.
     │   """
     │
-    ├── Step 6: INSERT each chunk summary into wa_intel.messages
+    ├── Step 6: INSERT each chunk summary into hmso.messages
     │   {
     │     source_type: 'meeting',
     │     message_text: chunk_summary_text,
@@ -1000,7 +1000,7 @@ n8n Workflow:
     │
     ├── Step 7: After ALL chunks processed → generate executive summary
     │   Send all chunk summaries to AI → synthesize into 1-page executive summary
-    │   UPDATE wa_intel.meetings SET executive_summary = <result>
+    │   UPDATE hmso.meetings SET executive_summary = <result>
     │
     └── Step 8: Existing pipeline takes over automatically
           - Classifier picks up meeting chunks (same 15-min cron)
@@ -1179,14 +1179,14 @@ SELECT
     c.role,
     e.employee_id,        -- dari tabel HMCS
     e.hire_date            -- dari tabel HMCS
-FROM wa_intel.messages m
-JOIN wa_intel.contacts c ON c.id = m.contact_id
+FROM hmso.messages m
+JOIN hmso.contacts c ON c.id = m.contact_id
 LEFT JOIN public.employees e ON e.phone_number = c.phone_number;
 
 -- Contoh 2: Cari task dari store manager yang baru direkrut < 3 bulan
 SELECT t.*
-FROM wa_intel.tasks t
-JOIN wa_intel.contacts c ON c.short_name = t.assigned_to
+FROM hmso.tasks t
+JOIN hmso.contacts c ON c.short_name = t.assigned_to
 LEFT JOIN public.employees e ON e.phone_number = c.phone_number
 WHERE c.role = 'Store Manager'
 AND e.hire_date > now() - INTERVAL '3 months';
@@ -1197,16 +1197,16 @@ SELECT
     s.store_code,          -- dari HMCS
     s.city,                -- dari HMCS
     COUNT(m.id) AS message_count
-FROM wa_intel.groups g
+FROM hmso.groups g
 LEFT JOIN public.stores s ON g.name ILIKE '%' || s.store_name || '%'
-LEFT JOIN wa_intel.messages m ON m.wa_group_id = g.wa_group_id
+LEFT JOIN hmso.messages m ON m.wa_group_id = g.wa_group_id
 GROUP BY g.name, s.store_code, s.city;
 ```
 
 ### Catatan Penting Cross-Schema
 - `wa_intel` schema menggunakan `SUPABASE_SERVICE_ROLE_KEY` di server (Baileys listener) — ini bypass RLS dan bisa access semua schema.
 - Dashboard (client-side) menggunakan `SUPABASE_ANON_KEY` — perlu set RLS policy yang tepat untuk tabel wa_intel yang diakses.
-- Field `hmcs_employee_id` di tabel `wa_intel.contacts` adalah bridge opsional ke data HMCS — populate ini secara manual atau via script matching nomor HP.
+- Field `hmcs_employee_id` di tabel `hmso.contacts` adalah bridge opsional ke data HMCS — populate ini secara manual atau via script matching nomor HP.
 - JANGAN buat foreign key constraint cross-schema (wa_intel → public) karena bisa menyulitkan migrasi nanti. Gunakan soft reference (matching by phone_number atau employee_id).
 
 ---
@@ -1232,7 +1232,7 @@ Tanpa tabel `contacts`, AI classifier hanya tahu "628123456789 mengirim pesan di
 **Opsi C: Import dari HMCS (jika data karyawan sudah ada)**
 ```sql
 -- Jika HMCS sudah punya tabel employees dengan nomor HP:
-INSERT INTO wa_intel.contacts (wa_jid, phone_number, display_name, role, location, hmcs_employee_id)
+INSERT INTO hmso.contacts (wa_jid, phone_number, display_name, role, location, hmcs_employee_id)
 SELECT
     e.phone_number || '@s.whatsapp.net',
     e.phone_number,
@@ -1443,7 +1443,7 @@ Jika project ini dikerjakan menggunakan Bolt.new:
 
 1. **Database:** Gunakan Supabase project EXISTING (URL: `https://nnzhdjibilebpjgaqkdu.supabase.co`). JANGAN buat project Supabase baru. JANGAN jalankan `npx supabase init` atau setup Supabase baru.
 
-2. **Schema:** Semua SQL migrations harus target schema `wa_intel`. Setiap CREATE TABLE harus diawali `wa_intel.` — contoh: `CREATE TABLE wa_intel.messages (...)`. JANGAN gunakan schema `public`.
+2. **Schema:** Semua SQL migrations harus target schema `wa_intel`. Setiap CREATE TABLE harus diawali `hmso.` — contoh: `CREATE TABLE hmso.messages (...)`. JANGAN gunakan schema `public`.
 
 3. **Existing tables di `public`:** Ada tabel-tabel HMCS di schema `public`. JANGAN query, modify, atau drop tabel-tabel ini. Mereka bukan bagian dari project hmso.
 
@@ -1473,7 +1473,7 @@ Jika project ini dikerjakan menggunakan Bolt.new:
    )
    // Lalu query normal:
    const { data } = await waIntel.from('messages').select('*')
-   // Ini otomatis query wa_intel.messages
+   // Ini otomatis query hmso.messages
    ```
    
    **Cara 2:** Gunakan RPC (SQL function) untuk query complex cross-schema.
@@ -1482,7 +1482,7 @@ Jika project ini dikerjakan menggunakan Bolt.new:
 
 8. **Fokus Bolt:** Gunakan Bolt untuk build:
    - Dashboard (Module 5): Next.js/Vite + React, kanban board, direction log, group activity
-   - Bisa juga: Admin page untuk manage contacts (wa_intel.contacts)
+   - Bisa juga: Admin page untuk manage contacts (hmso.contacts)
    - Bisa juga: Search interface (Module 6 — Fase 2)
 
 ---
@@ -1496,37 +1496,37 @@ HMCS (HollyMart Central System) is the primary operational system used daily by 
 
 | Output | Table/View | Description |
 |---|---|---|
-| Classified messages | `wa_intel.classified_items` | Every message tagged: task, direction, report, question, coordination, noise |
-| Extracted tasks | `wa_intel.tasks` | AI-detected action items with description, source group, assignee, deadline |
-| Extracted directions | `wa_intel.directions` | Leadership memos and directives with context |
-| Daily briefings | `wa_intel.daily_briefings` | Pre-generated summary in Bahasa Indonesia |
-| Contacts | `wa_intel.contacts` | Auto-discovered people with phone numbers |
-| Overdue tasks | `wa_intel.overdue_tasks` (view) | Tasks past deadline or stale |
+| Classified messages | `hmso.classified_items` | Every message tagged: task, direction, report, question, coordination, noise |
+| Extracted tasks | `hmso.tasks` | AI-detected action items with description, source group, assignee, deadline |
+| Extracted directions | `hmso.directions` | Leadership memos and directives with context |
+| Daily briefings | `hmso.daily_briefings` | Pre-generated summary in Bahasa Indonesia |
+| Contacts | `hmso.contacts` | Auto-discovered people with phone numbers |
+| Overdue tasks | `hmso.overdue_tasks` (view) | Tasks past deadline or stale |
 
 ### Integration Patterns (pick based on HMCS capabilities)
 
 **Pattern A — Same Database, Direct Read (START HERE)**
 
-Since both schemas live in the same Supabase instance, HMCS can simply query `wa_intel.*` tables directly. No API needed. Zero effort.
+Since both schemas live in the same Supabase instance, HMCS can simply query `hmso.*` tables directly. No API needed. Zero effort.
 
 ```sql
 -- HMCS can read HMSO data directly:
-SELECT * FROM wa_intel.tasks WHERE status = 'new' ORDER BY created_at DESC;
-SELECT * FROM wa_intel.daily_briefings WHERE DATE(created_at) = CURRENT_DATE;
-SELECT * FROM wa_intel.overdue_tasks;
+SELECT * FROM hmso.tasks WHERE status = 'new' ORDER BY created_at DESC;
+SELECT * FROM hmso.daily_briefings WHERE DATE(created_at) = CURRENT_DATE;
+SELECT * FROM hmso.overdue_tasks;
 ```
 
 Use cases:
 - HMCS dashboard widget showing "HMSOligence Summary"
 - HMCS task list incorporating WA-extracted tasks
-- HMCS notification system reading from wa_intel.overdue_tasks
+- HMCS notification system reading from hmso.overdue_tasks
 
 **Pattern B — API Push (LATER, if HMCS needs tasks in its own schema)**
 
 A Supabase Edge Function watches for new classified items and pushes them to HMCS via its API.
 
 ```
-New task in wa_intel.tasks
+New task in hmso.tasks
   → database trigger fires
   → calls edge function "sync-to-hmcs"
   → POST to HMCS API: /api/tasks/create
@@ -1556,7 +1556,7 @@ When to use: If HMCS has its own task management system with assignment, status 
 - [ ] If yes to both → implement Pattern B edge function (sync-to-hmcs)
 - [ ] If no → use Pattern A (HMCS reads from wa_intel tables directly)
 - [ ] Add HMCS dashboard widget for HMSOligence summary
-- [ ] Map wa_intel.contacts to HMCS employees (phone number matching)
+- [ ] Map hmso.contacts to HMCS employees (phone number matching)
 - [ ] Test: task created in WA → appears in HMCS → assigned user sees notification
 
 ---
@@ -1612,6 +1612,6 @@ Ketika kamu (Claude Code / Cursor) membantu coding project ini:
 13. **Full-text search BEFORE vector search.** Implement `to_tsvector('indonesian', ...)` dulu. pgvector hanya jika full-text search tidak cukup.
 14. **Ban risk awareness**: Sending 1 msg/day to self = safe. Bulk sending to many numbers = JANGAN.
 15. **Source-agnostic pipeline.** Selalu check `source_type` column di messages table. Classifier, briefing, search, dan dashboard harus handle semua source types (`'whatsapp'`, `'meeting'`, future sources).
-16. **Meeting transcripts**: Chunk summaries masuk ke `wa_intel.messages` (source_type='meeting'). Full meeting record ada di `wa_intel.meetings`. Jangan confuse keduanya.
+16. **Meeting transcripts**: Chunk summaries masuk ke `hmso.messages` (source_type='meeting'). Full meeting record ada di `hmso.meetings`. Jangan confuse keduanya.
 17. **Meeting AI model**: Gunakan OpenRouter (premium model) untuk meeting summarization, BUKAN GPT-4o-mini. Meeting chunks bisa 3000-5000 kata — butuh model yang kuat.
 18. **Classifier prompt harus source-aware**: Meeting chunks bisa mengandung MULTIPLE tasks/directions dalam satu message. Extract semuanya, bukan cuma yang pertama.

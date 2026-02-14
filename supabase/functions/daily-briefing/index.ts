@@ -72,13 +72,6 @@ interface DirectionRow {
   created_at: string;
 }
 
-interface GroupSummary {
-  group_name: string;
-  total: number;
-  tasks: number;
-  directions: number;
-}
-
 // ─── Topic-Based Data Fetching (new, from daily_topics) ───────────────────
 
 interface DailyTopicRow {

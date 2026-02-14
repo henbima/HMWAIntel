@@ -135,8 +135,7 @@ async function findCompletionMessages(
 
   if (!data) return [];
 
-  // deno-lint-ignore no-explicit-any
-  return (data as any[]).map((row) => ({
+  return (data as CandidateMessage[]).map((row) => ({
     id: row.id,
     message_text: row.message_text,
     sender_name: row.sender_name,

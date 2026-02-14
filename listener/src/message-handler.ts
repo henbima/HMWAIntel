@@ -21,14 +21,25 @@ export async function handleMessage(msg: WAMessage) {
   // Discard broadcast/status messages
   if (remoteJid.includes('@broadcast')) return;
 
+  // Discard protocol messages (history sync, peer data operations, etc.)
+  if (msg.message?.protocolMessage) return;
+
+  // Discard message stubs (system notifications, failed decryptions)
+  if (msg.messageStubType && !msg.message) return;
+
   const isGroup = remoteJid.endsWith('@g.us');
   const isPersonal = remoteJid.endsWith('@s.whatsapp.net');
+  const isLid = remoteJid.endsWith('@lid');
 
-  if (!isGroup && !isPersonal) return; // Unknown JID type
+  if (!isGroup && !isPersonal && !isLid) {
+    logger.debug({ remoteJid }, 'Skipping unknown JID type');
+    return;
+  }
 
   if (isGroup) {
     await handleGroupMessage(msg, remoteJid);
   } else {
+    // Both @s.whatsapp.net and @lid are personal DMs
     await handlePersonalMessage(msg, remoteJid);
   }
 }
@@ -95,8 +106,16 @@ async function handleGroupMessage(msg: WAMessage, remoteJid: string) {
 
 async function handlePersonalMessage(msg: WAMessage, remoteJid: string) {
   const isFromMe = msg.key?.fromMe === true;
+  const isLid = remoteJid.endsWith('@lid');
+
+  // For LID messages, we need to figure out the actual contact JID
+  // The remoteJid is the LID, but we store wa_contact_jid as the phone-based JID when possible
   const senderJid = isFromMe ? config.hendraJid : remoteJid;
   const isFromHendra = isFromMe || senderJid === config.hendraJid;
+
+  // For wa_contact_jid, use the remoteJid (whether @s.whatsapp.net or @lid)
+  // This ensures DMs are grouped by contact
+  const waContactJid = remoteJid;
 
   const text = extractText(msg);
   const messageType = detectMessageType(msg);
@@ -116,7 +135,7 @@ async function handlePersonalMessage(msg: WAMessage, remoteJid: string) {
     is_from_hendra: isFromHendra,
     quoted_message_id: extractQuotedId(msg) || null,
     conversation_type: 'personal',
-    wa_contact_jid: remoteJid,
+    wa_contact_jid: waContactJid,
     timestamp: timestamp.toISOString(),
     raw_data: stripBuffers(msg) as Record<string, unknown>,
     listener_id: config.listenerId,
@@ -135,6 +154,7 @@ async function handlePersonalMessage(msg: WAMessage, remoteJid: string) {
       sender: msg.pushName || senderJid,
       type: messageType,
       hendra: isFromHendra,
+      lid: isLid,
       len: text?.length || 0,
     },
     'Personal message saved'

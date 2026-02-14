@@ -38,7 +38,9 @@ export async function resolveContact(
     return existing.id;
   }
 
-  const phone = senderJid.replace('@s.whatsapp.net', '');
+  const phone = senderJid.endsWith('@lid')
+    ? senderJid.replace('@lid', '')
+    : senderJid.replace('@s.whatsapp.net', '');
   const displayName = pushName || phone;
 
   const { data: created, error } = await supabase
