@@ -19,7 +19,7 @@ last-updated: 2026-02-13
 Never write to, modify, or delete production data without explicit approval.
 
 ### 2. MULTI-APP DATABASE BOUNDARY
-This Supabase database is shared with other HollyMart apps. Before ANY `DROP`, `ALTER`, `DELETE`, `TRUNCATE`, or `cron.unschedule()`: query `hm_core.object_registry` to verify ownership is `wa_intel`. NEVER touch objects owned by other apps. See `database-boundary-governance.md`.
+This Supabase database is shared with other HollyMart apps. Before ANY `DROP`, `ALTER`, `DELETE`, `TRUNCATE`, or `cron.unschedule()`: query `hm_core.object_registry` to verify ownership is `hmso`. NEVER touch objects owned by other apps. See `database-boundary-governance.md`.
 
 ### 3. Ask Before Acting
 When in doubt, explain what you want to do and ask Hendra to confirm.

@@ -17,9 +17,9 @@ last-updated: 2026-02-14
 | Task | Command |
 |------|---------|
 | Check listener status | `ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "pm2 status"` |
-| View recent logs | `ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "pm2 logs wa-intel-listener --lines 50 --nostream"` |
-| Restart listener | `ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "cd ~/wa-intel-listener && pm2 restart ecosystem.config.cjs"` |
-| Stop listener | `ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "pm2 stop wa-intel-listener"` |
+| View recent logs | `ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "pm2 logs hmso-listener --lines 50 --nostream"` |
+| Restart listener | `ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "cd ~/hmso-listener && pm2 restart ecosystem.config.cjs"` |
+| Stop listener | `ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "pm2 stop hmso-listener"` |
 | Start listener | `ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "pm2 start ecosystem.config.cjs"` |
 
 ---
@@ -31,9 +31,9 @@ last-updated: 2026-02-14
 - **Server IP:** 103.150.92.166
 - **SSH User:** henbima
 - **PEM Key Location:** `D:\biznet\Hr43GeZ3.pem`
-- **Listener Directory:** `~/wa-intel-listener/`
+- **Listener Directory:** `~/hmso-listener/`
 - **Process Manager:** PM2
-- **Process Name:** `wa-intel-listener`
+- **Process Name:** `hmso-listener`
 
 ### SSH Command Template
 ```bash
@@ -42,7 +42,7 @@ ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "<command>"
 
 ### SCP Command Template (for file transfers)
 ```bash
-scp -O -i "D:\biznet\Hr43GeZ3.pem" <local-path> henbima@103.150.92.166:~/wa-intel-listener/<remote-path>
+scp -O -i "D:\biznet\Hr43GeZ3.pem" <local-path> henbima@103.150.92.166:~/hmso-listener/<remote-path>
 ```
 
 **Note:** The `-O` flag is REQUIRED (legacy protocol mode for this server).
@@ -64,14 +64,14 @@ Use SCP to copy changed files. **Do NOT overwrite `.env` or `auth_info/` on the 
 
 **Example: Deploy a single file**
 ```bash
-scp -O -i "D:\biznet\Hr43GeZ3.pem" listener/src/message-handler.ts henbima@103.150.92.166:~/wa-intel-listener/src/message-handler.ts
+scp -O -i "D:\biznet\Hr43GeZ3.pem" listener/src/message-handler.ts henbima@103.150.92.166:~/hmso-listener/src/message-handler.ts
 ```
 
 **Example: Deploy multiple files**
 ```bash
-scp -O -i "D:\biznet\Hr43GeZ3.pem" listener/src/index.ts henbima@103.150.92.166:~/wa-intel-listener/src/index.ts
-scp -O -i "D:\biznet\Hr43GeZ3.pem" listener/src/config.ts henbima@103.150.92.166:~/wa-intel-listener/src/config.ts
-scp -O -i "D:\biznet\Hr43GeZ3.pem" listener/package.json henbima@103.150.92.166:~/wa-intel-listener/package.json
+scp -O -i "D:\biznet\Hr43GeZ3.pem" listener/src/index.ts henbima@103.150.92.166:~/hmso-listener/src/index.ts
+scp -O -i "D:\biznet\Hr43GeZ3.pem" listener/src/config.ts henbima@103.150.92.166:~/hmso-listener/src/config.ts
+scp -O -i "D:\biznet\Hr43GeZ3.pem" listener/package.json henbima@103.150.92.166:~/hmso-listener/package.json
 ```
 
 **FORBIDDEN: Do NOT SCP these files**
@@ -84,7 +84,7 @@ scp -O -i "D:\biznet\Hr43GeZ3.pem" listener/package.json henbima@103.150.92.166:
 SSH to the server and rebuild the TypeScript:
 
 ```bash
-ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "cd ~/wa-intel-listener && chmod +x node_modules/.bin/tsc && npm run build"
+ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "cd ~/hmso-listener && chmod +x node_modules/.bin/tsc && npm run build"
 ```
 
 **What this does:**
@@ -97,7 +97,7 @@ ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "cd ~/wa-intel-listener &
 After a successful build, restart PM2:
 
 ```bash
-ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "cd ~/wa-intel-listener && pm2 restart ecosystem.config.cjs"
+ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "cd ~/hmso-listener && pm2 restart ecosystem.config.cjs"
 ```
 
 **What this does:**
@@ -118,7 +118,7 @@ Expected output:
 ┌─────────────────────────┬────┬─────────┬──────┬──────────┐
 │ App name                │ id │ version │ mode │ status   │
 ├─────────────────────────┼────┼─────────┼──────┼──────────┤
-│ wa-intel-listener       │ 0  │ 1.0.0   │ fork │ online   │
+│ hmso-listener       │ 0  │ 1.0.0   │ fork │ online   │
 └─────────────────────────┴────┴─────────┴──────┴──────────┘
 ```
 
@@ -129,7 +129,7 @@ If status is `online`, deployment succeeded. If `stopped` or `errored`, check lo
 View the most recent logs to confirm the listener is running:
 
 ```bash
-ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "pm2 logs wa-intel-listener --lines 50 --nostream"
+ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "pm2 logs hmso-listener --lines 50 --nostream"
 ```
 
 **Expected log output (first startup):**
@@ -156,16 +156,16 @@ ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "pm2 logs wa-intel-listen
 
 ```bash
 # 1. Transfer the file
-scp -O -i "D:\biznet\Hr43GeZ3.pem" listener/src/message-handler.ts henbima@103.150.92.166:~/wa-intel-listener/src/message-handler.ts
+scp -O -i "D:\biznet\Hr43GeZ3.pem" listener/src/message-handler.ts henbima@103.150.92.166:~/hmso-listener/src/message-handler.ts
 
 # 2. Build on server
-ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "cd ~/wa-intel-listener && npm run build"
+ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "cd ~/hmso-listener && npm run build"
 
 # 3. Restart
-ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "cd ~/wa-intel-listener && pm2 restart ecosystem.config.cjs"
+ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "cd ~/hmso-listener && pm2 restart ecosystem.config.cjs"
 
 # 4. Verify
-ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "pm2 logs wa-intel-listener --lines 20 --nostream"
+ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "pm2 logs hmso-listener --lines 20 --nostream"
 ```
 
 ### Task: Deploy Multiple File Changes
@@ -174,17 +174,17 @@ ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "pm2 logs wa-intel-listen
 
 ```bash
 # 1. Transfer files
-scp -O -i "D:\biznet\Hr43GeZ3.pem" listener/package.json henbima@103.150.92.166:~/wa-intel-listener/package.json
-scp -O -i "D:\biznet\Hr43GeZ3.pem" listener/src/index.ts henbima@103.150.92.166:~/wa-intel-listener/src/index.ts
+scp -O -i "D:\biznet\Hr43GeZ3.pem" listener/package.json henbima@103.150.92.166:~/hmso-listener/package.json
+scp -O -i "D:\biznet\Hr43GeZ3.pem" listener/src/index.ts henbima@103.150.92.166:~/hmso-listener/src/index.ts
 
 # 2. Install dependencies + build on server
-ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "cd ~/wa-intel-listener && npm install && npm run build"
+ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "cd ~/hmso-listener && npm install && npm run build"
 
 # 3. Restart
-ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "cd ~/wa-intel-listener && pm2 restart ecosystem.config.cjs"
+ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "cd ~/hmso-listener && pm2 restart ecosystem.config.cjs"
 
 # 4. Verify
-ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "pm2 logs wa-intel-listener --lines 20 --nostream"
+ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "pm2 logs hmso-listener --lines 20 --nostream"
 ```
 
 ### Task: Check Listener Status Without Restarting
@@ -196,13 +196,13 @@ ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "pm2 status"
 ### Task: View Last 100 Lines of Logs
 
 ```bash
-ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "pm2 logs wa-intel-listener --lines 100 --nostream"
+ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "pm2 logs hmso-listener --lines 100 --nostream"
 ```
 
 ### Task: Stop the Listener (Emergency)
 
 ```bash
-ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "pm2 stop wa-intel-listener"
+ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "pm2 stop hmso-listener"
 ```
 
 ### Task: Start the Listener (After Stopping)
@@ -235,7 +235,7 @@ src/message-handler.ts:42:10 - error TS2339: Property 'xyz' does not exist on ty
 **Symptom:** `pm2 status` shows `errored` or `stopped`
 
 **Solution:**
-1. Check logs: `pm2 logs wa-intel-listener --lines 50 --nostream`
+1. Check logs: `pm2 logs hmso-listener --lines 50 --nostream`
 2. Look for error messages (connection failures, missing env vars, etc.)
 3. Common causes:
    - **Missing `.env` variable:** Check that `SUPABASE_SERVICE_ROLE_KEY` and `HENDRA_JID` are set on the server
@@ -268,7 +268,7 @@ src/message-handler.ts:42:10 - error TS2339: Property 'xyz' does not exist on ty
 **Solution:**
 1. Verify you're using the `-O` flag: `scp -O -i ...`
 2. Verify the local file path exists
-3. Verify the remote path is correct: `~/wa-intel-listener/src/`
+3. Verify the remote path is correct: `~/hmso-listener/src/`
 4. Check that the remote directory exists on the server
 
 ---
@@ -279,7 +279,7 @@ src/message-handler.ts:42:10 - error TS2339: Property 'xyz' does not exist on ty
 
 - **`.env`** — Contains Supabase credentials. If you need to update env vars, SSH to the server and edit directly:
   ```bash
-  ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "nano ~/wa-intel-listener/.env"
+  ssh -i "D:\biznet\Hr43GeZ3.pem" henbima@103.150.92.166 "nano ~/hmso-listener/.env"
   ```
 
 - **`auth_info/`** — Contains WhatsApp session state. Deleting this requires re-scanning the QR code. Only delete if the listener is logged out.
@@ -291,7 +291,7 @@ src/message-handler.ts:42:10 - error TS2339: Property 'xyz' does not exist on ty
 The server folder is NOT a git repository. Files must be transferred individually via SCP. The structure mirrors the local `listener/` folder:
 
 ```
-~/wa-intel-listener/
+~/hmso-listener/
 ├── src/                    # TypeScript source files
 ├── dist/                   # Compiled JavaScript (generated by npm run build)
 ├── auth_info/              # WhatsApp session credentials (DO NOT TOUCH)
@@ -351,7 +351,7 @@ This runs the listener locally without PM2. Useful for testing changes before de
 ## Questions?
 
 If you encounter issues not covered here:
-1. Check the logs: `pm2 logs wa-intel-listener --lines 100 --nostream`
+1. Check the logs: `pm2 logs hmso-listener --lines 100 --nostream`
 2. Check the error message carefully — it usually indicates the root cause
 3. Ask Hendra for clarification on server access or credentials
 4. Reference `listener/README.md` for listener-specific documentation

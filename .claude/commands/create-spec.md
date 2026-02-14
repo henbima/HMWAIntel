@@ -11,7 +11,7 @@ When running as Opus, you MUST delegate. Do NOT read files or write spec content
 
 Before writing ANY spec files, verify facts:
 
-1. **Read project context:** `CLAUDE.md`, `wa_intel_setup.sql` (if DB changes needed)
+1. **Read project context:** `CLAUDE.md`, `hmso_setup.sql` (if DB changes needed)
 2. **Verify database** (if applicable) — use Supabase MCP to query schema
 3. **Verify codebase** — search for existing patterns in `src/`, `supabase/functions/`
 4. **Present findings** to user and wait for confirmation before proceeding

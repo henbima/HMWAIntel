@@ -5,7 +5,7 @@ Before making any database changes, perform these pre-flight checks:
 When running as Opus, delegate checks 1-4 to a **Sonnet** subagent (file reads + SQL queries). Opus only reviews the findings and presents the report (step 6) to the user.
 
 ## 1. Review Schema Reference
-Read `wa_intel_setup.sql` to understand the current schema. All tables live in the **`hmso`** schema.
+Read `hmso_setup.sql` to understand the current schema. All tables live in the **`hmso`** schema.
 
 ## 2. Verify Schema via Supabase MCP
 For the table(s) you plan to modify, verify the actual columns:

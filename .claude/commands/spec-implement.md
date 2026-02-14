@@ -36,7 +36,7 @@ After committing, immediately proceed to the next unchecked task (loop back to P
 If conversation is getting long, suggest `/compact` before continuing.
 
 ## If Issues Occur
-- **Missing table/column**: Verify schema with Supabase MCP, check `wa_intel_setup.sql`
+- **Missing table/column**: Verify schema with Supabase MCP, check `hmso_setup.sql`
 - **RLS blocking**: Check policies with `SELECT * FROM pg_policies WHERE schemaname = 'hmso'`
 - **TypeScript errors**: Fix before proceeding
 - **Data not showing**: Check DB data, RLS policies, auth state
